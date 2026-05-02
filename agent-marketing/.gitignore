@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+dist/
+.vinxi/
+.output/
+.tanstack/
+.env
+.env.local
+.superpowers/
+coverage/

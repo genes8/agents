@@ -1,0 +1,418 @@
+/* Dark Foundry — editorial premium GTM tool */
+
+:root {
+  --bg: #0B0A09;
+  --surface: #141210;
+  --surface-raised: #1C1916;
+  --surface-hover: #221F1B;
+  --border: #2C2825;
+  --border-dim: #1E1C19;
+  --text: #EDE8DF;
+  --text-muted: #7A726A;
+  --text-faint: #46403A;
+  --accent: #C8772D;
+  --accent-hi: #E08A3A;
+  --accent-glow: rgba(200, 119, 45, 0.1);
+  --ok-bg: #0D2418;
+  --ok-text: #5FAF82;
+  --err-bg: #220D0D;
+  --err-text: #C47575;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 26px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ─── Page ─── */
+.page-shell {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 52px 36px 96px;
+}
+
+/* ─── Hero ─── */
+.hero-panel {
+  margin-bottom: 48px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+
+.eyebrow::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+h1 {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-size: clamp(2.8rem, 4.8vw, 5.2rem);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  max-width: 800px;
+  margin-bottom: 20px;
+}
+
+.hero-panel > p {
+  font-size: 0.77rem;
+  color: var(--text-muted);
+  max-width: 500px;
+  line-height: 1.9;
+}
+
+/* ─── Banners ─── */
+.status-banner,
+.error-banner {
+  border-radius: var(--r-md);
+  margin-bottom: 14px;
+  padding: 10px 15px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.status-banner {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border: 1px solid rgba(95, 175, 130, 0.18);
+}
+
+.error-banner {
+  background: var(--err-bg);
+  color: var(--err-text);
+  border: 1px solid rgba(196, 117, 117, 0.18);
+}
+
+/* ─── Layout ─── */
+.app-grid {
+  display: grid;
+  grid-template-columns: 352px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.workbench-stack {
+  display: grid;
+  gap: 10px;
+}
+
+/* ─── Cards ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.muted-card {
+  background: var(--bg);
+  border-style: dashed;
+}
+
+.card-hd {
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.card-bd {
+  padding: 18px 22px 22px;
+}
+
+/* ─── Form card ─── */
+.form-card {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.step-tag {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+
+h2 {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.card-hd p {
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+/* ─── Form fields ─── */
+.fields {
+  display: grid;
+  gap: 13px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 0.18s;
+}
+
+label:focus-within {
+  color: var(--accent);
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.73rem;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  resize: none;
+  -webkit-appearance: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ─── Buttons ─── */
+.primary-button {
+  width: 100%;
+  background: var(--accent);
+  color: #0B0A09;
+  border: none;
+  border-radius: var(--r-md);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 13px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--accent-hi);
+}
+
+.primary-button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.secondary-button {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.secondary-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-hi);
+  background: var(--accent-glow);
+}
+
+button:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+/* ─── Module grid ─── */
+.module-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+/* ─── Strategy content ─── */
+h3 {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+.card > h3:first-of-type,
+.card-bd > h3:first-child {
+  margin-top: 0;
+}
+
+.card p {
+  font-size: 0.77rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+li {
+  font-size: 0.74rem;
+  color: var(--text);
+  padding: 5px 0 5px 18px;
+  position: relative;
+  border-bottom: 1px solid var(--border-dim);
+  line-height: 1.5;
+}
+
+li:last-child { border-bottom: none; }
+
+li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  color: var(--accent);
+  font-size: 0.65em;
+  line-height: 1;
+}
+
+/* ─── Output cards ─── */
+.output-stack {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.output-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+}
+
+.output-card h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 0.92rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.output-card h4 {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 13px 0 4px;
+}
+
+.output-card p {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ─── Export ─── */
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.export-btn {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.export-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-hi);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 960px) {
+  .page-shell { padding: 28px 18px 64px; }
+  .app-grid { grid-template-columns: 1fr; }
+  .form-card { position: static; max-height: none; }
+}
