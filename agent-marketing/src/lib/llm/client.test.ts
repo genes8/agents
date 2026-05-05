@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { completeJsonPrompt, completeStructuredPrompt, getLlmConfig, type ChatCompletionClient } from "./client";
+import {
+  completeJsonPrompt,
+  completeStructuredPrompt,
+  completeStructuredPromptWithRecovery,
+  getLlmConfig,
+  LlmRecoveryError,
+  type ChatCompletionClient,
+} from "./client";
 
 const originalEnv = { ...process.env };
 
@@ -112,5 +119,86 @@ describe("completeStructuredPrompt", () => {
     await expect(completeStructuredPrompt(schema, { prompt: "Return JSON", client: fakeClient })).rejects.toThrow(
       "count",
     );
+  });
+});
+
+describe("completeStructuredPromptWithRecovery", () => {
+  const schema = z.object({ name: z.string(), count: z.number() });
+
+  it("succeeds on first attempt when JSON and schema are valid", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fakeClient: ChatCompletionClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: '{"name":"acme","count":3}' } }],
+          }),
+        },
+      },
+    };
+
+    const result = await completeStructuredPromptWithRecovery(schema, { prompt: "Return JSON", client: fakeClient });
+    expect(result).toEqual({ name: "acme", count: 3 });
+    expect(fakeClient.chat.completions.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("repairs invalid JSON with a second call and succeeds", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fakeClient: ChatCompletionClient = {
+      chat: {
+        completions: {
+          create: vi
+            .fn()
+            .mockResolvedValueOnce({ choices: [{ message: { content: 'broken json{' } }] })
+            .mockResolvedValueOnce({ choices: [{ message: { content: '{"name":"fixed","count":1}' } }] }),
+        },
+      },
+    };
+
+    const result = await completeStructuredPromptWithRecovery(schema, { prompt: "Return JSON", client: fakeClient });
+    expect(result).toEqual({ name: "fixed", count: 1 });
+    expect(fakeClient.chat.completions.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("corrects schema mismatch with a second call and succeeds", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fakeClient: ChatCompletionClient = {
+      chat: {
+        completions: {
+          create: vi
+            .fn()
+            .mockResolvedValueOnce({ choices: [{ message: { content: '{"name":"acme"}' } }] })
+            .mockResolvedValueOnce({ choices: [{ message: { content: '{"name":"acme","count":5}' } }] }),
+        },
+      },
+    };
+
+    const result = await completeStructuredPromptWithRecovery(schema, { prompt: "Return JSON", client: fakeClient });
+    expect(result).toEqual({ name: "acme", count: 5 });
+    expect(fakeClient.chat.completions.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws LlmRecoveryError with schema_validation_exhausted when all attempts fail", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fakeClient: ChatCompletionClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({ choices: [{ message: { content: '{"name":"acme"}' } }] }),
+        },
+      },
+    };
+
+    await expect(
+      completeStructuredPromptWithRecovery(schema, { prompt: "Return JSON", client: fakeClient }),
+    ).rejects.toThrow(LlmRecoveryError);
+
+    try {
+      await completeStructuredPromptWithRecovery(schema, { prompt: "Return JSON", client: fakeClient });
+    } catch (e) {
+      expect(e).toBeInstanceOf(LlmRecoveryError);
+      expect((e as LlmRecoveryError).errorType).toBe("schema_validation_exhausted");
+      const message = (e as LlmRecoveryError).message;
+      expect(message).not.toContain("test-key");
+    }
   });
 });

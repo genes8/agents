@@ -33,8 +33,9 @@ describe("campaign orchestrator", () => {
       refine: vi.fn(),
     };
 
-    const result = await generateCampaignStrategy(brief, agents);
+    const { strategy: result, mcpResults } = await generateCampaignStrategy(brief, agents);
     expect(result).toBe(strategy);
+    expect(mcpResults).toEqual([]);
     expect(agents.research).toHaveBeenCalledOnce();
     expect(agents.strategy).toHaveBeenCalledOnce();
   });

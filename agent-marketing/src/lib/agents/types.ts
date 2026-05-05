@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, RefineOutput } from "../campaign/types";
+import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, McpSource, RefineOutput } from "../campaign/types";
 import type { ResearchBriefSchema } from "./schemas";
 
 export type ResearchBrief = z.infer<typeof ResearchBriefSchema>;
@@ -24,6 +24,12 @@ export type RefineAgentInput = {
   strategy: CampaignStrategy;
   originalText: string;
   instruction: string;
+};
+
+export type QcReviewerInput = {
+  brief: CampaignBrief;
+  moduleOutput: CampaignModuleOutput;
+  sources: McpSource[];
 };
 
 export type CampaignAgents = {

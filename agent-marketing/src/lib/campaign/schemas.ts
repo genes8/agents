@@ -57,3 +57,45 @@ export const RefineOutputSchema = z.object({
   revisedText: z.string(),
   changeSummary: z.string(),
 });
+
+// --- Persisted/workflow schemas ---
+
+export const CampaignWorkflowStateSchema = z.enum([
+  "draft_brief",
+  "research_ready",
+  "strategy_ready",
+  "modules_ready",
+  "review_pending",
+  "approved",
+  "exported",
+]);
+
+export const CampaignEventSchema = z.enum([
+  "BRIEF_SAVED",
+  "RESEARCH_COMPLETED",
+  "STRATEGY_GENERATED",
+  "MODULE_GENERATED",
+  "QC_REQUESTED",
+  "QC_APPROVED",
+  "QC_REJECTED",
+  "EXPORTED",
+  "RESET_TO_DRAFT",
+]);
+
+export const QcVerdictSchema = z.enum(["pass", "warn", "fail"]);
+
+export const QcReviewIssueSchema = z.object({
+  severity: z.enum(["error", "warning", "info"]),
+  message: z.string(),
+});
+
+export const QcReviewResultSchema = z.object({
+  reviewer: z.enum(["brand_safety", "claim_verifier", "platform_compliance", "tone_consistency", "conversion"]),
+  verdict: QcVerdictSchema,
+  issues: z.array(QcReviewIssueSchema),
+  suggestedEdits: z.array(z.string()).optional(),
+  confidence: z.number().min(0).max(1),
+  linkedSourceIds: z.array(z.string()).optional(),
+});
+
+export const GenerationRunStatusSchema = z.enum(["running", "success", "failed"]);

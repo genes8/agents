@@ -1,5 +1,5 @@
 import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, RefineOutput } from "../campaign/types";
-import { formatMcpToolResults, runMcpResearchTools } from "../mcp/runtime";
+import { formatMcpToolResults, runMcpResearchTools, type McpToolResult } from "../mcp/runtime";
 import { runCreativeDirector } from "./creative-director";
 import { runMarketResearcher } from "./market-researcher";
 import { runPositioningStrategist } from "./positioning-strategist";
@@ -13,11 +13,20 @@ const defaultAgents: CampaignAgents = {
   refine: runCopyRefiner,
 };
 
-export async function generateCampaignStrategy(brief: CampaignBrief, agents = defaultAgents): Promise<CampaignStrategy> {
+export type StrategyResult = {
+  strategy: CampaignStrategy;
+  mcpResults: McpToolResult[];
+};
+
+export async function generateCampaignStrategy(
+  brief: CampaignBrief,
+  agents = defaultAgents,
+): Promise<StrategyResult> {
   const mcpResults = await runMcpResearchTools({ briefText: buildBriefText(brief) });
   const mcpContext = formatMcpToolResults(mcpResults);
   const research = await agents.research({ brief, mcpContext });
-  return agents.strategy({ brief, mcpContext, research });
+  const strategy = await agents.strategy({ brief, mcpContext, research });
+  return { strategy, mcpResults };
 }
 
 export async function generateCampaignModule(input: {

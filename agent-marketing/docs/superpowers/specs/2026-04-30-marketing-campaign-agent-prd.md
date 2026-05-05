@@ -1,5 +1,7 @@
 # Marketing Campaign Agent PRD
 
+> **Last updated:** 2026-05-04. This PRD has been significantly updated to reflect the current implemented state. Original v1 non-goals (no database, no campaign history) have been superseded by the working implementation which includes SQLite persistence, campaign history, QC reviews, chat refinement, and export tracking. See `docs/CHANGELOG.md` for the full history of changes.
+
 **Date:** 2026-04-30  
 **Product:** Startup marketing campaign generator  
 **Primary user:** Startup founder or in-house startup team  
@@ -18,25 +20,24 @@ This product should act as a GTM copilot, not a generic copy generator. It shoul
 ## 2. Goals
 
 - Create a full-stack web app with a guided campaign workflow.
-- Use Cursor SDK to run an agentic marketing strategist.
-- Support a custom Cursor model named `deepseek-v4-flash` configured in Cursor with a DeepSeek API key and OpenAI-compatible base URL.
+- Use DeepSeek (via OpenAI-compatible API) with custom TypeScript subagents for strategy and content generation.
+- Support `deepseek-v4-flash` model via `OPENAI_BASE_URL` and `OPENAI_API_KEY` environment variables.
 - Prioritize X, LinkedIn, and Instagram in v1.
 - Generate strategy, social copy, content calendar, creative briefs, and image prompts.
-- Avoid database, login, image generation API, scheduling, and billing in v1.
-- Keep v1 exportable: users can copy content or download Markdown/JSON.
+- Persist campaigns in SQLite with Drizzle ORM, including campaign history, QC reviews, chat messages, and export tracking.
+- Keep v1 exportable: users can download Markdown/JSON exports after QC approval.
 
 ---
 
 ## 3. Non-Goals for v1
 
-- No user accounts.
-- No persistent campaign history.
-- No database.
+- No real user accounts (single `DEFAULT_USER_ID` placeholder).
 - No direct image generation.
 - No social scheduling/publishing integrations.
 - No analytics ingestion.
 - No multi-tenant SaaS infrastructure.
 - No payment flow.
+- No real-time updates (no WebSocket/SSE).
 
 ---
 
@@ -143,11 +144,14 @@ Output:
 - **Primary provider:** DeepSeek through OpenAI-compatible API
 - **Default base URL:** `https://api.deepseek.com/v1`
 - **Default model:** `deepseek-v4-flash`
-- **Agent runtime:** Custom TypeScript subagent orchestrator
+- **Agent runtime:** Custom TypeScript subagent orchestrator (market researcher, positioning strategist, social copywriter, creative director)
+- **QC system:** 5 parallel reviewers (brand safety, claim verifier, platform compliance, tone consistency, conversion)
 - **MCP runtime:** Optional stdio MCP clients through `@modelcontextprotocol/client`
-- **Styling:** Simple CSS modules or global CSS for v1
-- **State:** React state only
-- **Export:** Markdown and JSON generated client-side from current state
+- **Database:** SQLite via `better-sqlite3` + Drizzle ORM
+- **Styling:** Global CSS (dark editorial theme)
+- **State:** Persisted SQLite campaign state + React presentation state
+- **Export:** Markdown and JSON downloads gated behind QC approval
+- **Testing:** Vitest (94 tests, 14 files)
 
 ---
 
@@ -298,10 +302,16 @@ type RefineOutput = {
 - The brief form should be short enough to complete quickly but specific enough to produce useful output.
 - The workbench should display Strategy Core first.
 - Module buttons should stay disabled until Strategy Core exists.
+- Already-generated modules should be visually distinct (active style + checkmark).
 - Each generated section should have copy controls.
-- Export should support Markdown and JSON.
+- Export should support Markdown and JSON, gated behind QC approval.
 - Loading states should explain what the agent is doing: researching, positioning, generating copy, or refining.
-- Errors should be actionable, especially missing `CURSOR_API_KEY` or missing `deepseek-v4-flash` custom model.
+- Errors should be actionable, especially missing `OPENAI_API_KEY`.
+- Campaign state should be visible as a colored pill at all times (draft, approved, exported, etc.).
+- QC review panel should show reviewer verdicts, issues, and suggested edits with Approve/Reject actions.
+- Chat should support freeform questions and refinement requests with conversation memory.
+- Campaign history sidebar should list all past campaigns with their workflow state.
+- Source panel should show MCP research attribution with confidence scores and URLs.
 
 ---
 
@@ -311,19 +321,24 @@ V1 is successful when a user can:
 
 1. Start the dev server.
 2. Enter a startup brief.
-3. Generate Strategy Core through Cursor SDK using `deepseek-v4-flash`.
+3. Generate Strategy Core through DeepSeek using `deepseek-v4-flash`.
 4. Generate at least one module for X, LinkedIn, or Instagram.
-5. Refine one generated block.
-6. Export the campaign as Markdown or JSON.
-7. See clear errors if Cursor API/model configuration is missing.
+5. See automated QC review results with verdicts and issues.
+6. Approve or request revisions on QC review.
+7. Chat with the assistant about the campaign (with conversation memory).
+8. Export the campaign as Markdown or JSON after approval.
+9. Re-export from the exported state without issues.
+10. See clear errors if API key configuration is missing.
+11. Browse campaign history and reload past campaigns.
 
 ---
 
 ## 13. Open Decisions Deferred After V1
 
 - Which image generation provider to use.
-- Whether to add persistent campaign history.
-- Whether to add login and multi-user support.
+- Whether to add real login and multi-user support (replacing `DEFAULT_USER_ID`).
 - Whether to support scheduling/publishing integrations.
 - Whether to add analytics feedback loops.
-- Whether to switch from local Cursor runtime to cloud runtime.
+- Whether to add run history UI (generation run logs with latency and state transitions).
+- Whether to add per-module QC drill-down.
+- Whether to add WebSocket/SSE for real-time updates.

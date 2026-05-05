@@ -54,7 +54,7 @@ export function buildModulePrompt(input: ModulePromptInput): string {
     `Generate the ${input.module} module for this startup campaign.`,
     "Use the Strategy Core as the source of truth. Keep copy specific, non-generic, and suitable for a startup founder.",
     "Return only valid JSON matching CampaignModuleOutput. Do not wrap in Markdown.",
-    "CampaignModuleOutput fields: module, title, summary, sections. Each section has title and items.",
+    `CampaignModuleOutput fields: module (must be exactly the string "${input.module}"), title, summary, sections. Each section has title and items.`,
     input.instructions ? `Additional user instructions: ${input.instructions}` : "No additional user instructions.",
     "Brief:",
     JSON.stringify(input.brief, null, 2),

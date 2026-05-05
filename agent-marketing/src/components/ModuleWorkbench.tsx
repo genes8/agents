@@ -3,6 +3,7 @@ import type { CampaignModule, CampaignModuleOutput, CampaignStrategy } from "../
 type ModuleWorkbenchProps = {
   strategy: CampaignStrategy | null;
   modules: CampaignModuleOutput[];
+  generatedKinds: Set<CampaignModule>;
   disabled: boolean;
   onGenerate: (module: CampaignModule) => void;
 };
@@ -15,7 +16,7 @@ const availableModules: Array<{ id: CampaignModule; label: string }> = [
   { id: "creative", label: "Creative Briefs" },
 ];
 
-export function ModuleWorkbench({ strategy, modules: outputs, disabled, onGenerate }: ModuleWorkbenchProps) {
+export function ModuleWorkbench({ strategy, modules: outputs, generatedKinds, disabled, onGenerate }: ModuleWorkbenchProps) {
   return (
     <section className="card">
       <div className="card-hd">
@@ -25,17 +26,20 @@ export function ModuleWorkbench({ strategy, modules: outputs, disabled, onGenera
       </div>
       <div className="card-bd">
         <div className="module-grid">
-          {availableModules.map((module) => (
-            <button
-              className="secondary-button"
-              disabled={!strategy || disabled}
-              key={module.id}
-              onClick={() => onGenerate(module.id)}
-              type="button"
-            >
-              {module.label}
-            </button>
-          ))}
+          {availableModules.map((module) => {
+            const isGenerated = generatedKinds.has(module.id);
+            return (
+              <button
+                className={`secondary-button${isGenerated ? " secondary-button--active" : ""}`}
+                disabled={!strategy || disabled}
+                key={module.id}
+                onClick={() => onGenerate(module.id)}
+                type="button"
+              >
+                {module.label}{isGenerated ? " ✓" : ""}
+              </button>
+            );
+          })}
         </div>
 
         {outputs.length > 0 && (

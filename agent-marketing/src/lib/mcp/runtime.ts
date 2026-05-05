@@ -1,11 +1,16 @@
 import { getMcpStdioServers, type McpStdioServerConfig } from "./config";
 
-type McpContent = { type: string; text?: string };
+type McpContent = { type: string; text?: string } & Record<string, unknown>;
 
 export type McpToolResult = {
   serverName: string;
   toolName: string;
   content: McpContent[];
+  extractedText: string;
+  sourceUrl?: string;
+  title?: string;
+  snippet?: string;
+  confidence?: number;
 };
 
 export type McpRuntimeClient = {
@@ -67,7 +72,9 @@ export async function runMcpResearchTools(input: RunMcpResearchToolsInput): Prom
         });
 
         if (!result.isError) {
-          results.push({ serverName, toolName: tool.name, content: result.content });
+          const metadata = extractMcpMetadata(result.content);
+
+          results.push({ serverName, toolName: tool.name, content: result.content, ...metadata });
         }
       }
     }
@@ -91,6 +98,72 @@ async function listAllTools(client: McpRuntimeClient): Promise<Array<{ name: str
   return allTools;
 }
 
+function extractMcpMetadata(content: McpContent[]): Pick<
+  McpToolResult,
+  "extractedText" | "sourceUrl" | "title" | "snippet" | "confidence"
+> {
+  const textItems = content
+    .filter((item) => item.type === "text")
+    .map((item) => item.text ?? "")
+    .filter(Boolean);
+  const text = textItems.join("\n").trim();
+
+  for (const item of textItems) {
+    const parsed = tryParseJsonObject(item);
+    if (parsed) {
+      const snippet = stringField(parsed, "snippet") ?? stringField(parsed, "text") ?? text;
+      return {
+        extractedText: snippet,
+        sourceUrl: stringField(parsed, "sourceUrl") ?? stringField(parsed, "url"),
+        title: stringField(parsed, "title"),
+        snippet,
+        confidence: numberField(parsed, "confidence"),
+      };
+    }
+  }
+
+  for (const item of content) {
+    if (item.type === "text") continue;
+    const parsed = objectFields(item);
+    const snippet = stringField(parsed, "snippet") ?? stringField(parsed, "text") ?? JSON.stringify(parsed);
+    return {
+      extractedText: snippet,
+      sourceUrl: stringField(parsed, "sourceUrl") ?? stringField(parsed, "url"),
+      title: stringField(parsed, "title"),
+      snippet,
+      confidence: numberField(parsed, "confidence"),
+    };
+  }
+
+  return { extractedText: text, snippet: text || undefined };
+}
+
+function tryParseJsonObject(value: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function objectFields(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "type"));
+}
+
+function stringField(value: Record<string, unknown>, key: string): string | undefined {
+  const field = value[key];
+  return typeof field === "string" && field.trim() ? field : undefined;
+}
+
+function numberField(value: Record<string, unknown>, key: string): number | undefined {
+  const field = value[key];
+  return typeof field === "number" && Number.isFinite(field) ? field : undefined;
+}
+
 export function formatMcpToolResults(results: McpToolResult[]): string {
   if (results.length === 0) {
     return "MCP Research Context: No MCP research tools returned context.";
@@ -100,7 +173,7 @@ export function formatMcpToolResults(results: McpToolResult[]): string {
     "MCP Research Context:",
     ...results.flatMap((result) => [
       `Source: ${result.serverName}.${result.toolName}`,
-      ...result.content.map((item) => (item.type === "text" ? item.text ?? "" : JSON.stringify(item))),
+      result.extractedText || result.content.map((item) => (item.type === "text" ? item.text ?? "" : JSON.stringify(item))).join("\n"),
     ]),
   ].join("\n");
 }

@@ -6,5 +6,8 @@ dist/
 .tanstack/
 .env
 .env.local
+local.db
+local.db-shm
+local.db-wal
 .superpowers/
 coverage/

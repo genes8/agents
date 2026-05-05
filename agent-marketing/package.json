@@ -7,12 +7,18 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "latest",
     "@tanstack/react-router": "latest",
     "@tanstack/react-start": "latest",
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.45.2",
     "openai": "latest",
     "react": "latest",
     "react-dom": "latest",
@@ -20,9 +26,11 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "drizzle-kit": "^0.31.10",
     "typescript": "latest",
     "vitest": "latest"
   }
