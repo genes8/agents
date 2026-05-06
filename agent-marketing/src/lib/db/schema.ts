@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, real, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, real, jsonb, integer } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -51,6 +51,10 @@ export const agentRuns = pgTable("agent_runs", {
   errorType: text("error_type"),
   errorMessage: text("error_message"),
   latencyMs: real("latency_ms"),
+  promptTokens: integer("prompt_tokens"),
+  completionTokens: integer("completion_tokens"),
+  totalTokens: integer("total_tokens"),
+  estimatedCostUsd: real("estimated_cost_usd"),
   createdAt: timestamp("created_at").notNull(),
   completedAt: timestamp("completed_at"),
 });
@@ -107,6 +111,17 @@ export const qcReviews = pgTable("qc_reviews", {
   suggestedEditsJson: jsonb("suggested_edits_json"),
   confidence: real("confidence"),
   linkedSourceIdsJson: jsonb("linked_source_ids_json"),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: text("id").primaryKey(),
+  event: text("event").notNull(),
+  userId: text("user_id"),
+  campaignId: text("campaign_id"),
+  jobId: text("job_id"),
+  runId: text("run_id"),
+  meta: jsonb("meta"),
   createdAt: timestamp("created_at").notNull(),
 });
 

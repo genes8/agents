@@ -93,6 +93,19 @@ export async function setAgentJobBossJobId(db: Db, jobId: AgentJobId, bossJobId:
     .where(eq(agentJobs.id, jobId));
 }
 
+export async function cancelAgentJob(db: Db, jobId: AgentJobId): Promise<AgentJob | null> {
+  const job = await getAgentJob(db, jobId);
+  if (!job) return null;
+  if (job.status !== "queued" && job.status !== "running") return job;
+
+  await db
+    .update(agentJobs)
+    .set({ status: "cancelled", completedAt: now() })
+    .where(eq(agentJobs.id, jobId));
+
+  return { ...job, status: "cancelled" };
+}
+
 async function updateAgentJob(
   db: Db,
   jobId: AgentJobId,

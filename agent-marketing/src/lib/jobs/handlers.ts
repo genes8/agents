@@ -2,6 +2,7 @@ import type { Db } from "../db/client";
 import { createAgentJob, setAgentJobBossJobId } from "./repository";
 import type { AgentJob, AgentJobPayload, AgentJobType } from "./types";
 import type { CampaignId, UserId } from "../campaign/types";
+import { writeAuditEvent } from "../audit/logger";
 
 export type BossQueueClient = {
   createQueue: (name: string) => Promise<void>;
@@ -30,8 +31,9 @@ export async function enqueueAgentJob(
 
   if (bossJobId) {
     await setAgentJobBossJobId(db, job.id, bossJobId);
-    return { ...job, bossJobId };
   }
 
-  return job;
+  await writeAuditEvent(db, { event: "job.enqueued", userId: input.userId, campaignId: input.campaignId, jobId: job.id, meta: { type: input.type } });
+
+  return bossJobId ? { ...job, bossJobId } : job;
 }

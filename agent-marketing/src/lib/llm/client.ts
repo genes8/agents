@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { z } from "zod";
+import { recordApiUsage } from "./usage-context";
 
 export type LlmConfig = {
   apiKey: string;
@@ -80,6 +81,8 @@ export async function completeJsonPrompt(input: CompleteJsonPromptInput): Promis
     ],
   });
 
+  recordApiUsage(response.usage);
+
   const content = response.choices[0]?.message?.content;
 
   if (!content) {
@@ -102,6 +105,7 @@ export async function completeChatPrompt(input: CompleteJsonPromptInput): Promis
     ],
   });
 
+  recordApiUsage(response.usage);
   return response.choices[0]?.message?.content ?? "";
 }
 

@@ -2,6 +2,7 @@ import { eq, desc } from "drizzle-orm";
 import type { Db } from "../client";
 import { agentRuns } from "../schema";
 import type { CampaignId, CampaignWorkflowState, GenerationRun, RunId } from "../../campaign/types";
+import type { TokenUsage } from "../../llm/usage-context";
 
 function newId(): string {
   return crypto.randomUUID();
@@ -50,7 +51,7 @@ export async function createRun(
 export async function completeRun(
   db: Db,
   runId: RunId,
-  result: { stateAfter?: CampaignWorkflowState; latencyMs?: number },
+  result: { stateAfter?: CampaignWorkflowState; latencyMs?: number; tokenUsage?: TokenUsage; estimatedCostUsd?: number },
 ): Promise<void> {
   const ts = now();
   await db
@@ -59,6 +60,10 @@ export async function completeRun(
       status: "success",
       stateAfter: result.stateAfter ?? null,
       latencyMs: result.latencyMs ?? null,
+      promptTokens: result.tokenUsage?.promptTokens ?? null,
+      completionTokens: result.tokenUsage?.completionTokens ?? null,
+      totalTokens: result.tokenUsage?.totalTokens ?? null,
+      estimatedCostUsd: result.estimatedCostUsd ?? null,
       completedAt: ts,
     })
     .where(eq(agentRuns.id, runId))

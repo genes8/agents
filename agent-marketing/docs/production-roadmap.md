@@ -220,12 +220,12 @@ A production-like staging environment is running on Hetzner.
 
 ### Tasks
 
-- [ ] Add `audit_logs` table.
-- [ ] Add structured logger.
-- [ ] Add Sentry.
-- [ ] Add model token/cost tracking.
-- [ ] Add admin job retry/cancel controls.
-- [ ] Add backups.
+- [x] Add `audit_logs` table.
+- [x] Add structured logger.
+- [x] Add Sentry.
+- [x] Add model token/cost tracking.
+- [x] Add admin job retry/cancel controls.
+- [x] Add backups.
 
 ### Expected File Areas
 
@@ -242,9 +242,9 @@ A production-like staging environment is running on Hetzner.
 - `campaign.created`
 - `job.enqueued`
 - `job.started`
-- `node.started`
+- `node.started` *(candidate; not wired — covered by node.completed with latency)*
 - `node.completed`
-- `qc.completed`
+- `qc.completed` *(candidate; not wired — QC runs inside generate_module node)*
 - `human.approved`
 - `export.downloaded`
 - `job.failed`
@@ -252,13 +252,13 @@ A production-like staging environment is running on Hetzner.
 
 ### Acceptance Criteria
 
-- [ ] Audit events are append-only.
-- [ ] Worker logs include job ID, campaign ID, node name, and latency.
-- [ ] LLM token usage is stored when provider returns usage data.
-- [ ] Estimated model cost is visible in run metadata.
-- [ ] Admin can retry failed jobs.
-- [ ] Admin can cancel queued/running jobs where supported.
-- [ ] Backups are configured and restore process is documented.
+- [x] Audit events are append-only.
+- [x] Worker logs include job ID, campaign ID, node name, and latency.
+- [x] LLM token usage is stored when provider returns usage data.
+- [x] Estimated model cost is visible in run metadata.
+- [x] Admin can retry failed jobs.
+- [x] Admin can cancel queued/running jobs where supported.
+- [x] Backups are configured and restore process is documented.
 
 ### Deliverable
 

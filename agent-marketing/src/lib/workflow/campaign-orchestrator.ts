@@ -11,6 +11,8 @@ import { runClaimVerifier } from "../agents/qc/claim-verifier";
 import { runPlatformComplianceReviewer } from "../agents/qc/platform-compliance-reviewer";
 import { runToneConsistencyReviewer } from "../agents/qc/tone-consistency-reviewer";
 import { runConversionReviewer } from "../agents/qc/conversion-reviewer";
+import { runWithUsageTracking, estimateCostUsd } from "../llm/usage-context";
+import { writeAuditEvent } from "../audit/logger";
 import type {
   CampaignBrief,
   CampaignId,
@@ -33,7 +35,9 @@ export async function createCampaignHandler(
   userId: UserId = DEFAULT_USER_ID,
 ): Promise<PersistedCampaignWorkspace> {
   const db = getDb();
-  return createCampaign(db, { brief, userId });
+  const workspace = await createCampaign(db, { brief, userId });
+  await writeAuditEvent(db, { event: "campaign.created", userId, campaignId: workspace.id });
+  return workspace;
 }
 
 export async function getCampaignHandler(
@@ -65,9 +69,19 @@ export async function generateStrategyHandler(
   });
 
   const start = Date.now();
+  const model = process.env.OPENAI_DEFAULT_MODEL ?? "deepseek-v4-flash";
   try {
-    await executeGenerateStrategyNode(db, { campaignId, brief: workspace.brief, runId: run.id });
-    await completeRun(db, run.id, { stateAfter: "strategy_ready", latencyMs: Date.now() - start });
+    const { usage } = await runWithUsageTracking(() =>
+      executeGenerateStrategyNode(db, { campaignId, brief: workspace.brief, runId: run.id }),
+    );
+    const latencyMs = Date.now() - start;
+    await completeRun(db, run.id, {
+      stateAfter: "strategy_ready",
+      latencyMs,
+      tokenUsage: usage,
+      estimatedCostUsd: estimateCostUsd(usage, model),
+    });
+    await writeAuditEvent(db, { event: "node.completed", userId, campaignId, runId: run.id, meta: { node: "generate_strategy", latencyMs } });
 
     const updated = await getCampaign(db, campaignId, userId);
     return updated!;
@@ -99,18 +113,28 @@ export async function generateModuleHandler(
   });
 
   const start = Date.now();
+  const model = process.env.OPENAI_DEFAULT_MODEL ?? "deepseek-v4-flash";
   try {
-    const result = await executeGenerateModuleNode(db, {
-      campaignId,
-      brief: workspace.brief,
-      strategy: workspace.strategy,
-      module,
-      runId: run.id,
-      previousWorkflowState: workspace.workflowState,
-    });
+    const { result, usage } = await runWithUsageTracking(() =>
+      executeGenerateModuleNode(db, {
+        campaignId,
+        brief: workspace.brief,
+        strategy: workspace.strategy!,
+        module,
+        runId: run.id,
+        previousWorkflowState: workspace.workflowState,
+      }),
+    );
+    const latencyMs = Date.now() - start;
     const finalState = result.workflowState;
-    await completeRun(db, run.id, { stateAfter: finalState, latencyMs: Date.now() - start });
+    await completeRun(db, run.id, {
+      stateAfter: finalState,
+      latencyMs,
+      tokenUsage: usage,
+      estimatedCostUsd: estimateCostUsd(usage, model),
+    });
     await updateWorkflowState(db, campaignId, finalState);
+    await writeAuditEvent(db, { event: "node.completed", userId, campaignId, runId: run.id, meta: { node: `generate_module_${module}`, latencyMs } });
 
     const updated = await getCampaign(db, campaignId, userId);
     return updated!;
@@ -202,6 +226,7 @@ export async function approveQcHandler(
   const workspace = await getCampaign(db, campaignId, userId);
   if (!workspace) throw new Error(`Campaign not found: ${campaignId}`);
   await updateWorkflowState(db, campaignId, "approved");
+  await writeAuditEvent(db, { event: "human.approved", userId, campaignId });
   const updated = await getCampaign(db, campaignId, userId);
   return updated!;
 }
@@ -378,6 +403,7 @@ export async function recordExportHandler(
   }
   await saveExportEvent(db, { campaignId, userId, format });
   await updateWorkflowState(db, campaignId, "exported");
+  await writeAuditEvent(db, { event: "export.downloaded", userId, campaignId, meta: { format } });
   const updated = await getCampaign(db, campaignId, userId);
   return updated!;
 }
