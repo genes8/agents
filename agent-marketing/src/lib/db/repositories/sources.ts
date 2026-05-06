@@ -38,12 +38,12 @@ export async function saveSource(
       title: input.title ?? null,
       snippet: input.snippet ?? null,
       confidence: input.confidence ?? null,
-      usedInJson: input.usedIn ? JSON.stringify(input.usedIn) : null,
+      usedInJson: input.usedIn ?? null,
       serverName: input.serverName,
       toolName: input.toolName,
       createdAt: ts,
     })
-    .run();
+    ;
 
   return {
     id,
@@ -79,7 +79,7 @@ export async function getSourcesByRun(db: Db, runId: RunId): Promise<McpSource[]
 }
 
 export async function getSourceById(db: Db, sourceId: McpSourceId): Promise<McpSource | null> {
-  const row = await db.select().from(mcpSources).where(eq(mcpSources.id, sourceId)).get();
+  const row = (await db.select().from(mcpSources).where(eq(mcpSources.id, sourceId)).limit(1))[0];
   return row ? rowToSource(row) : null;
 }
 
@@ -94,7 +94,7 @@ function rowToSource(row: SourceRow): McpSource {
     title: row.title ?? undefined,
     snippet: row.snippet ?? undefined,
     confidence: row.confidence ?? undefined,
-    usedIn: row.usedInJson ? (JSON.parse(row.usedInJson) as string[]) : undefined,
+    usedIn: (row.usedInJson as string[] | null) ?? undefined,
     serverName: row.serverName,
     toolName: row.toolName,
     createdAt: row.createdAt,

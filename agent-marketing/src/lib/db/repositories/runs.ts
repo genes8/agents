@@ -34,7 +34,7 @@ export async function createRun(
       stateBefore: input.stateBefore ?? null,
       createdAt: ts,
     })
-    .run();
+    ;
 
   return {
     id,
@@ -62,7 +62,7 @@ export async function completeRun(
       completedAt: ts,
     })
     .where(eq(agentRuns.id, runId))
-    .run();
+    ;
 }
 
 export async function failRun(
@@ -81,11 +81,11 @@ export async function failRun(
       completedAt: ts,
     })
     .where(eq(agentRuns.id, runId))
-    .run();
+    ;
 }
 
 export async function getRun(db: Db, runId: RunId): Promise<GenerationRun | null> {
-  const row = await db.select().from(agentRuns).where(eq(agentRuns.id, runId)).get();
+  const row = (await db.select().from(agentRuns).where(eq(agentRuns.id, runId)).limit(1))[0];
   if (!row) return null;
   return rowToRun(row);
 }

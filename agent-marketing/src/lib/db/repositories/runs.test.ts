@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createTestDb, DEFAULT_USER_ID } from "../client";
+import { createTestDb } from "../client";
 import { createCampaign } from "./campaigns";
 import { createRun, completeRun, failRun, getRun, getRunsByCampaign } from "./runs";
 import type { CampaignBrief } from "../../campaign/types";
@@ -15,11 +15,11 @@ const testBrief: CampaignBrief = {
 };
 
 describe("runs repository", () => {
-  let db: ReturnType<typeof createTestDb>;
+  let db: Awaited<ReturnType<typeof createTestDb>>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = createTestDb();
+    db = await createTestDb();
     const campaign = await createCampaign(db, { brief: testBrief });
     campaignId = campaign.id;
   });
