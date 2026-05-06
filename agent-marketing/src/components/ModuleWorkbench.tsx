@@ -1,4 +1,5 @@
 import type { CampaignModule, CampaignModuleOutput, CampaignStrategy } from "../lib/campaign/types";
+import { CopyButton } from "./CopyButton";
 
 type ModuleWorkbenchProps = {
   strategy: CampaignStrategy | null;
@@ -15,6 +16,18 @@ const availableModules: Array<{ id: CampaignModule; label: string }> = [
   { id: "calendar", label: "7/14-Day Calendar" },
   { id: "creative", label: "Creative Briefs" },
 ];
+
+function formatModuleText(output: CampaignModuleOutput): string {
+  const lines = [`# ${output.title}`, "", output.summary, ""];
+  for (const section of output.sections) {
+    lines.push(`## ${section.title}`);
+    for (const item of section.items) {
+      lines.push(`- ${item}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
 
 export function ModuleWorkbench({ strategy, modules: outputs, generatedKinds, disabled, onGenerate }: ModuleWorkbenchProps) {
   return (
@@ -46,11 +59,17 @@ export function ModuleWorkbench({ strategy, modules: outputs, generatedKinds, di
           <div className="output-stack">
             {outputs.map((output) => (
               <article className="output-card" key={`${output.module}-${output.title}`}>
-                <h3>{output.title}</h3>
+                <div className="section-hdr">
+                  <h3>{output.title}</h3>
+                  <CopyButton text={formatModuleText(output)} label="Copy module" />
+                </div>
                 <p>{output.summary}</p>
                 {output.sections.map((section) => (
                   <div key={section.title}>
-                    <h4>{section.title}</h4>
+                    <div className="section-hdr">
+                      <h4>{section.title}</h4>
+                      <CopyButton text={section.items.join("\n")} />
+                    </div>
                     <ul>
                       {section.items.map((item) => (
                         <li key={item}>{item}</li>

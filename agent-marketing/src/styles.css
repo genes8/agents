@@ -187,12 +187,7 @@ h1 {
 
 /* ─── Form card ─── */
 .form-card {
-  position: sticky;
-  top: 20px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  /* scrolling is handled by .sidebar-stack */
 }
 
 .step-tag {
@@ -488,6 +483,12 @@ li::before {
 
 /* ─── Sidebar stack ─── */
 .sidebar-stack {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
   display: grid;
   gap: 10px;
   align-content: start;
@@ -695,9 +696,48 @@ li::before {
 .qc-badge--warn { background: #1A1500; color: #C9A227; }
 .qc-badge--fail { background: var(--err-bg); color: var(--err-text); }
 
+/* ─── Section header with copy ─── */
+.section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.section-hdr h3,
+.section-hdr h4 {
+  margin: 0;
+}
+
+.copy-btn {
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.copy-btn--done {
+  color: var(--ok-text);
+  border-color: rgba(95, 175, 130, 0.3);
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 960px) {
   .page-shell { padding: 28px 18px 64px; }
   .app-grid { grid-template-columns: 1fr; }
-  .form-card { position: static; max-height: none; }
+  .sidebar-stack { position: static; max-height: none; overflow-y: visible; }
 }

@@ -1,8 +1,18 @@
 import type { CampaignStrategy } from "../lib/campaign/types";
+import { CopyButton } from "./CopyButton";
 
 type StrategyPanelProps = {
   strategy: CampaignStrategy | null;
 };
+
+function SectionHeader({ title, copyText }: { title: string; copyText: string }) {
+  return (
+    <div className="section-hdr">
+      <h3>{title}</h3>
+      <CopyButton text={copyText} />
+    </div>
+  );
+}
 
 export function StrategyPanel({ strategy }: StrategyPanelProps) {
   if (!strategy) {
@@ -24,30 +34,33 @@ export function StrategyPanel({ strategy }: StrategyPanelProps) {
         <h2>Strategy Core</h2>
       </div>
       <div className="card-bd">
-        <h3>Market summary</h3>
+        <SectionHeader title="Market summary" copyText={strategy.marketSummary} />
         <p>{strategy.marketSummary}</p>
 
-        <h3>ICP</h3>
+        <SectionHeader title="ICP" copyText={strategy.icp} />
         <p>{strategy.icp}</p>
 
-        <h3>Positioning</h3>
+        <SectionHeader title="Positioning" copyText={strategy.positioningStatement} />
         <p>{strategy.positioningStatement}</p>
 
-        <h3>Pain points</h3>
+        <SectionHeader title="Pain points" copyText={strategy.painPoints.join("\n")} />
         <ul>
           {strategy.painPoints.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ul>
 
-        <h3>Hooks</h3>
+        <SectionHeader title="Hooks" copyText={strategy.hooks.join("\n")} />
         <ul>
           {strategy.hooks.map((hook) => (
             <li key={hook}>{hook}</li>
           ))}
         </ul>
 
-        <h3>Channel strategy</h3>
+        <SectionHeader
+          title="Channel strategy"
+          copyText={`X: ${strategy.channelStrategy.x}\nLinkedIn: ${strategy.channelStrategy.linkedin}\nInstagram: ${strategy.channelStrategy.instagram}`}
+        />
         <ul>
           <li><strong>X —</strong> {strategy.channelStrategy.x}</li>
           <li><strong>LinkedIn —</strong> {strategy.channelStrategy.linkedin}</li>
