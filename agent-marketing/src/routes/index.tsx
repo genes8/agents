@@ -8,11 +8,11 @@ import { ModuleWorkbench } from "../components/ModuleWorkbench";
 import { ReviewPanel } from "../components/ReviewPanel";
 import { SourcePanel } from "../components/SourcePanel";
 import { StrategyPanel } from "../components/StrategyPanel";
-import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, CampaignWorkflowState } from "../lib/campaign/types";
+import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, CampaignWorkflowState, PersistedCampaignModule } from "../lib/campaign/types";
 import type { AgentJobStatus } from "../lib/jobs/types";
 import { checkModelConfiguration } from "../server/campaign";
 import { createCampaignFn, getCampaignFn } from "../server/campaigns";
-import { generateStrategyByCampaignId, generateModuleByCampaignId } from "../server/modules";
+import { generateStrategyByCampaignId, generateModuleByCampaignId, refineModuleById } from "../server/modules";
 import { getAgentJobByIdFn } from "../server/runs";
 
 export const Route = createFileRoute("/")({
@@ -44,6 +44,7 @@ function HomePage() {
   const [strategy, setStrategy] = useState<CampaignStrategy | null>(null);
   const [modules, setModules] = useState<CampaignModuleOutput[]>([]);
   const [generatedKinds, setGeneratedKinds] = useState<Set<CampaignModule>>(new Set());
+  const [moduleIds, setModuleIds] = useState<Map<CampaignModule, string>>(new Map());
   const [workflowState, setWorkflowState] = useState<CampaignWorkflowState | null>(null);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -208,9 +209,27 @@ function HomePage() {
 
   const busy = Boolean(activeJob) || status.endsWith("...");
 
-  function applyWorkspaceModules(mods: Array<{ moduleKind: CampaignModule; output: CampaignModuleOutput }>) {
+  function applyWorkspaceModules(mods: PersistedCampaignModule[]) {
     setModules(mods.map((m) => m.output));
     setGeneratedKinds(new Set(mods.map((m) => m.moduleKind)));
+    setModuleIds(new Map(mods.map((m) => [m.moduleKind, m.id])));
+  }
+
+  async function handleRefineModule(moduleId: string, instruction: string) {
+    if (!campaignId) return;
+    setError("");
+    setStatus("Refining module...");
+    try {
+      const ws = await refineModuleById({ data: { campaignId, moduleId, instruction } });
+      setBrief(ws.brief);
+      setStrategy(ws.strategy ?? null);
+      applyWorkspaceModules(ws.modules);
+      setWorkflowState(ws.workflowState);
+      setStatus("Module refined.");
+    } catch (e) {
+      setError((e as Error).message);
+      setStatus("");
+    }
   }
 
   return (
@@ -244,7 +263,7 @@ function HomePage() {
         </div>
         <div className="workbench-stack">
           <StrategyPanel strategy={strategy} />
-          <ModuleWorkbench disabled={busy} generatedKinds={generatedKinds} modules={modules} onGenerate={handleGenerateModule} strategy={strategy} />
+          <ModuleWorkbench disabled={busy} generatedKinds={generatedKinds} moduleIds={moduleIds} modules={modules} onGenerate={handleGenerateModule} onRefine={handleRefineModule} strategy={strategy} />
           <ReviewPanel
             campaignId={campaignId}
             workflowState={workflowState}

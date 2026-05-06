@@ -1,4 +1,4 @@
-import { Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "../styles.css";
 
@@ -34,6 +34,14 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en">
       <head />
       <body>
+        <nav style={{ position: "fixed", top: "14px", right: "22px", zIndex: 100 }}>
+          <Link
+            style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--text-faint)", textDecoration: "none" }}
+            to="/admin"
+          >
+            Admin →
+          </Link>
+        </nav>
         {children}
         <Scripts />
       </body>

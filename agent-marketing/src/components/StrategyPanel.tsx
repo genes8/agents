@@ -58,6 +58,49 @@ export function StrategyPanel({ strategy }: StrategyPanelProps) {
         </ul>
 
         <SectionHeader
+          title="Messaging pillars"
+          copyText={strategy.messagingPillars
+            .map((p) => `${p.name}: ${p.description}${p.proofPoints.length ? "\n" + p.proofPoints.map((pp) => `  - ${pp}`).join("\n") : ""}`)
+            .join("\n\n")}
+        />
+        {strategy.messagingPillars.map((pillar, i) => (
+          <div key={i}>
+            <h4>{pillar.name}</h4>
+            {pillar.description && <p>{pillar.description}</p>}
+            {pillar.proofPoints.length > 0 && (
+              <ul>
+                {pillar.proofPoints.map((pp, j) => (
+                  <li key={j}>{pp}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+
+        <SectionHeader
+          title="Brand voice"
+          copyText={[
+            `Tone: ${strategy.brandVoice.tone.join(", ")}`,
+            strategy.brandVoice.avoid.length ? `Avoid: ${strategy.brandVoice.avoid.join(", ")}` : "",
+          ].filter(Boolean).join("\n")}
+        />
+        <ul>
+          {strategy.brandVoice.tone.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+        {strategy.brandVoice.avoid.length > 0 && (
+          <>
+            <h4>Avoid</h4>
+            <ul>
+              {strategy.brandVoice.avoid.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <SectionHeader
           title="Channel strategy"
           copyText={`X: ${strategy.channelStrategy.x}\nLinkedIn: ${strategy.channelStrategy.linkedin}\nInstagram: ${strategy.channelStrategy.instagram}`}
         />

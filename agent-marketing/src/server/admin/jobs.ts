@@ -1,10 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getDb } from "../../lib/db/client";
-import { getAgentJob, cancelAgentJob, listAgentJobsByCampaign } from "../../lib/jobs/repository";
+import { getAgentJob, cancelAgentJob, listAgentJobsByCampaign, listAllAgentJobsByUser } from "../../lib/jobs/repository";
 import { enqueueAgentJob } from "../../lib/jobs/handlers";
 import { getCurrentUserId } from "../../lib/auth/user";
 import { getJobQueue } from "../../lib/jobs/queue";
 import { writeAuditEvent } from "../../lib/audit/logger";
+
+export const adminListAllJobsFn = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const userId = getCurrentUserId();
+    return listAllAgentJobsByUser(getDb(), userId);
+  });
 
 export const adminListJobsFn = createServerFn({ method: "GET" })
   .inputValidator((input: { campaignId: string }) => input)
