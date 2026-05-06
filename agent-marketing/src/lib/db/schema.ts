@@ -1,44 +1,44 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, timestamp, real, jsonb } from "drizzle-orm/pg-core";
 
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const campaigns = sqliteTable("campaigns", {
+export const campaigns = pgTable("campaigns", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
   name: text("name").notNull(),
   workflowState: text("workflow_state").notNull().default("draft_brief"),
-  briefJson: text("brief_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  briefJson: jsonb("brief_json").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const campaignStrategies = sqliteTable("campaign_strategies", {
+export const campaignStrategies = pgTable("campaign_strategies", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
     .references(() => campaigns.id),
-  strategyJson: text("strategy_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  strategyJson: jsonb("strategy_json").notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const campaignModules = sqliteTable("campaign_modules", {
+export const campaignModules = pgTable("campaign_modules", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
     .references(() => campaigns.id),
   moduleKind: text("module_kind").notNull(),
-  outputJson: text("output_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  outputJson: jsonb("output_json").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const agentRuns = sqliteTable("agent_runs", {
+export const agentRuns = pgTable("agent_runs", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
@@ -50,12 +50,12 @@ export const agentRuns = sqliteTable("agent_runs", {
   stateAfter: text("state_after"),
   errorType: text("error_type"),
   errorMessage: text("error_message"),
-  latencyMs: integer("latency_ms"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  latencyMs: real("latency_ms"),
+  createdAt: timestamp("created_at").notNull(),
+  completedAt: timestamp("completed_at"),
 });
 
-export const mcpSources = sqliteTable("mcp_sources", {
+export const mcpSources = pgTable("mcp_sources", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
@@ -65,13 +65,13 @@ export const mcpSources = sqliteTable("mcp_sources", {
   title: text("title"),
   snippet: text("snippet"),
   confidence: real("confidence"),
-  usedInJson: text("used_in_json"),
+  usedInJson: jsonb("used_in_json"),
   serverName: text("server_name").notNull(),
   toolName: text("tool_name").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const campaignMessages = sqliteTable("campaign_messages", {
+export const campaignMessages = pgTable("campaign_messages", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
@@ -81,20 +81,20 @@ export const campaignMessages = sqliteTable("campaign_messages", {
   messageType: text("message_type").notNull().default("chat"),
   moduleId: text("module_id"),
   runId: text("run_id"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const exportEvents = sqliteTable("export_events", {
+export const exportEvents = pgTable("export_events", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
     .references(() => campaigns.id),
   userId: text("user_id"),
   format: text("format").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const qcReviews = sqliteTable("qc_reviews", {
+export const qcReviews = pgTable("qc_reviews", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
@@ -103,9 +103,29 @@ export const qcReviews = sqliteTable("qc_reviews", {
   runId: text("run_id").references(() => agentRuns.id),
   reviewer: text("reviewer").notNull(),
   verdict: text("verdict").notNull(),
-  issuesJson: text("issues_json").notNull(),
-  suggestedEditsJson: text("suggested_edits_json"),
+  issuesJson: jsonb("issues_json").notNull(),
+  suggestedEditsJson: jsonb("suggested_edits_json"),
   confidence: real("confidence"),
-  linkedSourceIdsJson: text("linked_source_ids_json"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  linkedSourceIdsJson: jsonb("linked_source_ids_json"),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+export const agentJobs = pgTable("agent_jobs", {
+  id: text("id").primaryKey(),
+  campaignId: text("campaign_id")
+    .notNull()
+    .references(() => campaigns.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  type: text("type").notNull(),
+  status: text("status").notNull().default("queued"),
+  payloadJson: jsonb("payload_json").notNull(),
+  progressJson: jsonb("progress_json"),
+  errorJson: jsonb("error_json"),
+  bossJobId: text("boss_job_id"),
+  attempts: real("attempts").notNull().default(0),
+  createdAt: timestamp("created_at").notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
 });
