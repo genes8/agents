@@ -1,6 +1,6 @@
 # Marketing Campaign Agent PRD
 
-> **Last updated:** 2026-05-04. This PRD has been significantly updated to reflect the current implemented state. Original v1 non-goals (no database, no campaign history) have been superseded by the working implementation which includes SQLite persistence, campaign history, QC reviews, chat refinement, and export tracking. See `docs/CHANGELOG.md` for the full history of changes.
+> **Last updated:** 2026-05-06. This PRD has been significantly updated to reflect the current implemented state. Original v1 non-goals (no database, no campaign history) have been superseded by the working implementation which includes Postgres persistence, campaign history, QC reviews, chat refinement, and export tracking. See `docs/CHANGELOG.md` for the full history of changes.
 
 **Date:** 2026-04-30  
 **Product:** Startup marketing campaign generator  
@@ -24,7 +24,7 @@ This product should act as a GTM copilot, not a generic copy generator. It shoul
 - Support `deepseek-v4-flash` model via `OPENAI_BASE_URL` and `OPENAI_API_KEY` environment variables.
 - Prioritize X, LinkedIn, and Instagram in v1.
 - Generate strategy, social copy, content calendar, creative briefs, and image prompts.
-- Persist campaigns in SQLite with Drizzle ORM, including campaign history, QC reviews, chat messages, and export tracking.
+- Persist campaigns in Postgres with Drizzle ORM, including campaign history, QC reviews, chat messages, and export tracking.
 - Keep v1 exportable: users can download Markdown/JSON exports after QC approval.
 
 ---
@@ -147,9 +147,9 @@ Output:
 - **Agent runtime:** Custom TypeScript subagent orchestrator (market researcher, positioning strategist, social copywriter, creative director)
 - **QC system:** 5 parallel reviewers (brand safety, claim verifier, platform compliance, tone consistency, conversion)
 - **MCP runtime:** Optional stdio MCP clients through `@modelcontextprotocol/client`
-- **Database:** SQLite via `better-sqlite3` + Drizzle ORM
+- **Database:** Postgres via `postgres` + Drizzle ORM
 - **Styling:** Global CSS (dark editorial theme)
-- **State:** Persisted SQLite campaign state + React presentation state
+- **State:** Persisted Postgres campaign state + React presentation state
 - **Export:** Markdown and JSON downloads gated behind QC approval
 - **Testing:** Vitest (94 tests, 14 files)
 

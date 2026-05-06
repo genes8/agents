@@ -9,7 +9,7 @@
 - **Language:** TypeScript
 - **Runtime validation:** Zod v4
 - **Styling:** Global CSS (`src/styles.css`) — dark editorial theme with Fraunces + Space Mono
-- **State management:** Persisted SQLite/Drizzle campaign state + React presentation state in `routes/index.tsx`
+- **State management:** Persisted Postgres/Drizzle campaign state + React presentation state in `routes/index.tsx`
 - **Testing:** Vitest (environment: node) — 94 tests across 14 files
 
 ## AI / Agent Stack
@@ -41,9 +41,9 @@
 
 ## Persistence
 
-- **Database:** SQLite via `better-sqlite3` (local dev) / Turso-compatible (production)
-- **ORM:** Drizzle ORM (`drizzle-orm/better-sqlite3`)
-- **Migrations:** Drizzle Kit migrations in `drizzle/` (two migrations: `0000_noisy_rage` for core tables, `0001_qc_reviews` for QC review storage)
+- **Database:** Postgres via `postgres` (`postgres-js`)
+- **ORM:** Drizzle ORM (`drizzle-orm/postgres-js`)
+- **Migrations:** Drizzle Kit Postgres migrations in `drizzle/`
 - **Schema tables:** `users`, `campaigns`, `campaign_strategies`, `campaign_modules`, `agent_runs`, `mcp_sources`, `campaign_messages`, `export_events`, `qc_reviews`
 - **Single-user MVP:** `DEFAULT_USER_ID = "default-user"` in `src/lib/db/client.ts`; server handlers verify campaign ownership before exposing sources, QC reviews, messages, or export events
 - **Auth boundary:** `src/lib/auth/user.ts` — real login providers such as Clerk/Auth0/Lucia are deferred and can replace `getCurrentUserId()` later
@@ -58,7 +58,8 @@
 | `OPENAI_DEFAULT_MODEL` | `deepseek-v4-flash` | Primary model name |
 | `OPENAI_TEMPERATURE` | `0.7` | LLM sampling temperature |
 | `OPENAI_MAX_TOKENS` | `4096` | Max tokens per LLM call |
-| `DATABASE_URL` | `local.db` | SQLite database file path |
+| `DATABASE_URL` | — | Postgres connection string |
+| `TEST_DATABASE_URL` | `DATABASE_URL` | Postgres connection string used by repository tests |
 | `MCP_STDIO_SERVERS` | — | JSON array of stdio MCP server configs |
 
 ## Workflow State Machine
