@@ -71,10 +71,10 @@ const testStrategy: CampaignStrategy = {
 };
 
 describe("campaign-orchestrator handlers", () => {
-  let db: ReturnType<typeof createTestDb>;
+  let db: Awaited<ReturnType<typeof createTestDb>>;
 
-  beforeEach(() => {
-    db = createTestDb();
+  beforeEach(async () => {
+    db = await createTestDb();
     vi.spyOn(clientModule, "getDb").mockReturnValue(db);
   });
 

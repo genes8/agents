@@ -23,9 +23,9 @@ function now(): Date {
 }
 
 export async function ensureUser(db: Db, userId: UserId): Promise<void> {
-  const existing = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).get();
+  const existing = (await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1))[0];
   if (!existing) {
-    await db.insert(users).values({ id: userId, createdAt: now() }).run();
+    await db.insert(users).values({ id: userId, createdAt: now() });
   }
 }
 
@@ -51,11 +51,11 @@ export async function createCampaign(
       userId,
       name,
       workflowState: "draft_brief",
-      briefJson: JSON.stringify(input.brief),
+      briefJson: input.brief,
       createdAt: ts,
       updatedAt: ts,
     })
-    .run();
+    ;
 
   return {
     id,
@@ -75,20 +75,20 @@ export async function getCampaign(
   campaignId: CampaignId,
   userId: UserId = DEFAULT_USER_ID,
 ): Promise<PersistedCampaignWorkspace | null> {
-  const row = await db
+  const row = (await db
     .select()
     .from(campaigns)
     .where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, userId)))
-    .get();
+    .limit(1))[0];
 
   if (!row) return null;
 
-  const strategy = await db
+  const strategy = (await db
     .select()
     .from(campaignStrategies)
     .where(eq(campaignStrategies.campaignId, campaignId))
     .orderBy(desc(campaignStrategies.createdAt))
-    .get();
+    .limit(1))[0];
 
   const moduleRows = await db
     .select()
@@ -100,7 +100,7 @@ export async function getCampaign(
     id: m.id,
     campaignId: m.campaignId,
     moduleKind: m.moduleKind as CampaignModule,
-    output: JSON.parse(m.outputJson) as CampaignModuleOutput,
+    output: m.outputJson as CampaignModuleOutput,
     createdAt: m.createdAt,
     updatedAt: m.updatedAt,
   }));
@@ -111,8 +111,8 @@ export async function getCampaign(
     userId: row.userId,
     name: row.name,
     workflowState: row.workflowState as CampaignWorkflowState,
-    brief: JSON.parse(row.briefJson) as CampaignBrief,
-    strategy: strategy ? (JSON.parse(strategy.strategyJson) as CampaignStrategy) : undefined,
+    brief: row.briefJson as CampaignBrief,
+    strategy: strategy ? (strategy.strategyJson as CampaignStrategy) : undefined,
     modules,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -155,15 +155,15 @@ export async function saveStrategy(
     .values({
       id: newId(),
       campaignId,
-      strategyJson: JSON.stringify(strategy),
+      strategyJson: strategy,
       createdAt: ts,
     })
-    .run();
+    ;
   await db
     .update(campaigns)
     .set({ workflowState: "strategy_ready", updatedAt: ts })
     .where(eq(campaigns.id, campaignId))
-    .run();
+    ;
 }
 
 export async function upsertModule(
@@ -173,18 +173,18 @@ export async function upsertModule(
   output: CampaignModuleOutput,
 ): Promise<PersistedCampaignModule> {
   const ts = now();
-  const existing = await db
+  const existing = (await db
     .select()
     .from(campaignModules)
     .where(and(eq(campaignModules.campaignId, campaignId), eq(campaignModules.moduleKind, moduleKind)))
-    .get();
+    .limit(1))[0];
 
   if (existing) {
     await db
       .update(campaignModules)
-      .set({ outputJson: JSON.stringify(output), updatedAt: ts })
+      .set({ outputJson: output, updatedAt: ts })
       .where(eq(campaignModules.id, existing.id))
-      .run();
+      ;
     return { ...existing, moduleKind, output, updatedAt: ts };
   }
 
@@ -195,26 +195,26 @@ export async function upsertModule(
       id,
       campaignId,
       moduleKind,
-      outputJson: JSON.stringify(output),
+      outputJson: output,
       createdAt: ts,
       updatedAt: ts,
     })
-    .run();
+    ;
 
-  const currentCampaign = await db
+  const currentCampaign = (await db
     .select({ workflowState: campaigns.workflowState })
     .from(campaigns)
     .where(eq(campaigns.id, campaignId))
-    .get();
+    .limit(1))[0];
 
   if (currentCampaign?.workflowState === "strategy_ready") {
     await db
       .update(campaigns)
       .set({ workflowState: "modules_ready", updatedAt: ts })
       .where(eq(campaigns.id, campaignId))
-      .run();
+      ;
   } else {
-    await db.update(campaigns).set({ updatedAt: ts }).where(eq(campaigns.id, campaignId)).run();
+    await db.update(campaigns).set({ updatedAt: ts }).where(eq(campaigns.id, campaignId));
   }
 
   return {
@@ -236,5 +236,5 @@ export async function updateWorkflowState(
     .update(campaigns)
     .set({ workflowState: state, updatedAt: now() })
     .where(eq(campaigns.id, campaignId))
-    .run();
+    ;
 }

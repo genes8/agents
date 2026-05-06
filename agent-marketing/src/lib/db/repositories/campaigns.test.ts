@@ -25,10 +25,10 @@ const testStrategy: CampaignStrategy = {
 };
 
 describe("campaigns repository", () => {
-  let db: ReturnType<typeof createTestDb>;
+  let db: Awaited<ReturnType<typeof createTestDb>>;
 
-  beforeEach(() => {
-    db = createTestDb();
+  beforeEach(async () => {
+    db = await createTestDb();
   });
 
   it("creates campaign and returns draft_brief workspace", async () => {
