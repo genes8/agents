@@ -15,11 +15,11 @@ const testBrief: CampaignBrief = {
 };
 
 describe("exports repository", () => {
-  let db: ReturnType<typeof createTestDb>;
+  let db: Awaited<ReturnType<typeof createTestDb>>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = createTestDb();
+    db = await createTestDb();
     const campaign = await createCampaign(db, { brief: testBrief });
     campaignId = campaign.id;
   });

@@ -18,7 +18,7 @@ export async function saveExportEvent(
   const id = newId();
   const createdAt = now();
 
-  db
+  await db
     .insert(exportEvents)
     .values({
       id,
@@ -27,7 +27,7 @@ export async function saveExportEvent(
       format: input.format,
       createdAt,
     })
-    .run();
+    ;
 
   return {
     id,

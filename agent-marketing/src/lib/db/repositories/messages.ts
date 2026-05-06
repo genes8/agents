@@ -34,7 +34,7 @@ export async function saveMessage(
       runId: input.runId,
       createdAt: now,
     })
-    .run();
+    ;
 
   return {
     id,

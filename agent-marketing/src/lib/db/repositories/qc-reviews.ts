@@ -26,13 +26,13 @@ export async function saveQcReview(
       runId: opts.runId,
       reviewer: result.reviewer,
       verdict: result.verdict,
-      issuesJson: JSON.stringify(result.issues),
-      suggestedEditsJson: result.suggestedEdits ? JSON.stringify(result.suggestedEdits) : null,
+      issuesJson: result.issues,
+      suggestedEditsJson: result.suggestedEdits ?? null,
       confidence: result.confidence,
-      linkedSourceIdsJson: result.linkedSourceIds ? JSON.stringify(result.linkedSourceIds) : null,
+      linkedSourceIdsJson: result.linkedSourceIds ?? null,
       createdAt: now,
     })
-    .run();
+    ;
 
   return rowToReview({
     id,
@@ -41,10 +41,10 @@ export async function saveQcReview(
     runId: opts.runId ?? null,
     reviewer: result.reviewer,
     verdict: result.verdict,
-    issuesJson: JSON.stringify(result.issues),
-    suggestedEditsJson: result.suggestedEdits ? JSON.stringify(result.suggestedEdits) : null,
+    issuesJson: result.issues,
+    suggestedEditsJson: result.suggestedEdits ?? null,
     confidence: result.confidence ?? null,
-    linkedSourceIdsJson: result.linkedSourceIds ? JSON.stringify(result.linkedSourceIds) : null,
+    linkedSourceIdsJson: result.linkedSourceIds ?? null,
     createdAt: now,
   });
 }
@@ -75,21 +75,13 @@ export async function getQcReviewsByModule(
   return rows.map(rowToReview);
 }
 
-type QcReviewRow = {
-  id: string;
-  campaignId: string;
-  moduleId: string | null;
-  runId: string | null;
-  reviewer: string;
-  verdict: string;
-  issuesJson: string;
-  suggestedEditsJson: string | null;
-  confidence: number | null;
-  linkedSourceIdsJson: string | null;
-  createdAt: Date;
-};
+type QcReviewRow = typeof qcReviews.$inferSelect;
 
 function rowToReview(row: QcReviewRow): PersistedQcReview {
+  const issues = row.issuesJson as QcReviewIssue[];
+  const suggestedEdits = row.suggestedEditsJson as string[] | null;
+  const linkedSourceIds = row.linkedSourceIdsJson as string[] | null;
+
   return {
     id: row.id,
     campaignId: row.campaignId,
@@ -97,10 +89,10 @@ function rowToReview(row: QcReviewRow): PersistedQcReview {
     runId: row.runId ?? undefined,
     reviewer: row.reviewer as PersistedQcReview["reviewer"],
     verdict: row.verdict as PersistedQcReview["verdict"],
-    issues: JSON.parse(row.issuesJson) as QcReviewIssue[],
-    suggestedEdits: row.suggestedEditsJson ? (JSON.parse(row.suggestedEditsJson) as string[]) : undefined,
+    issues,
+    suggestedEdits: suggestedEdits ?? undefined,
     confidence: row.confidence ?? undefined,
-    linkedSourceIds: row.linkedSourceIdsJson ? (JSON.parse(row.linkedSourceIdsJson) as string[]) : undefined,
+    linkedSourceIds: linkedSourceIds ?? undefined,
     createdAt: row.createdAt,
   };
 }
