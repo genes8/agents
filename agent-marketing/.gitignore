@@ -11,3 +11,4 @@ local.db-shm
 local.db-wal
 .superpowers/
 coverage/
+dist-worker/
