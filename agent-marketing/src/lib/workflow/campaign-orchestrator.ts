@@ -25,19 +25,8 @@ import type {
   QcReviewResult,
   UserId,
 } from "../campaign/types";
-
-type QcReviewerName = QcReviewResult["reviewer"];
-
-const qcReviewers: Array<{
-  reviewer: QcReviewerName;
-  run: typeof runBrandSafetyReviewer;
-}> = [
-  { reviewer: "brand_safety", run: runBrandSafetyReviewer },
-  { reviewer: "claim_verifier", run: runClaimVerifier },
-  { reviewer: "platform_compliance", run: runPlatformComplianceReviewer },
-  { reviewer: "tone_consistency", run: runToneConsistencyReviewer },
-  { reviewer: "conversion", run: runConversionReviewer },
-];
+import { executeGenerateStrategyNode } from "./nodes/generate-strategy-node";
+import { executeGenerateModuleNode } from "./nodes/generate-module-node";
 
 export async function createCampaignHandler(
   brief: CampaignBrief,
@@ -77,25 +66,7 @@ export async function generateStrategyHandler(
 
   const start = Date.now();
   try {
-    const { strategy, mcpResults } = await generateCampaignStrategy(workspace.brief);
-
-    for (const result of mcpResults) {
-      if (result.extractedText) {
-        await saveSource(db, {
-          campaignId,
-          runId: run.id,
-          sourceUrl: result.sourceUrl,
-          title: result.title,
-          snippet: (result.snippet ?? result.extractedText).slice(0, 500),
-          confidence: result.confidence,
-          serverName: result.serverName,
-          toolName: result.toolName,
-          usedIn: ["market_researcher"],
-        });
-      }
-    }
-
-    await saveStrategy(db, campaignId, strategy);
+    await executeGenerateStrategyNode(db, { campaignId, brief: workspace.brief, runId: run.id });
     await completeRun(db, run.id, { stateAfter: "strategy_ready", latencyMs: Date.now() - start });
 
     const updated = await getCampaign(db, campaignId, userId);
@@ -129,50 +100,15 @@ export async function generateModuleHandler(
 
   const start = Date.now();
   try {
-    const output = await generateCampaignModule({
+    const result = await executeGenerateModuleNode(db, {
+      campaignId,
       brief: workspace.brief,
       strategy: workspace.strategy,
       module,
+      runId: run.id,
+      previousWorkflowState: workspace.workflowState,
     });
-
-    const persisted = await upsertModule(db, campaignId, module, output);
-
-    // Run QC reviewers in parallel
-    const sources = await getSourcesByCampaign(db, campaignId);
-    const qcInput = { brief: workspace.brief, moduleOutput: output, sources };
-    const reviewResults = await Promise.allSettled(qcReviewers.map((reviewer) => reviewer.run(qcInput)));
-
-    let needsReview = false;
-    for (const [index, r] of reviewResults.entries()) {
-      if (r.status === "fulfilled") {
-        await saveQcReview(db, campaignId, r.value, { moduleId: persisted.id, runId: run.id });
-        if (r.value.verdict === "warn" || r.value.verdict === "fail") needsReview = true;
-      } else {
-        needsReview = true;
-        await saveQcReview(
-          db,
-          campaignId,
-          {
-            reviewer: qcReviewers[index].reviewer,
-            verdict: "fail",
-            issues: [
-              {
-                severity: "error",
-                message: r.reason instanceof Error ? r.reason.message : "QC reviewer failed to complete.",
-              },
-            ],
-            confidence: 0,
-          },
-          { moduleId: persisted.id, runId: run.id },
-        );
-      }
-    }
-
-    let finalState: CampaignWorkflowState = needsReview ? "review_pending" : "approved";
-    // Preserve 'exported' state if campaign was already exported
-    if (!needsReview && workspace.workflowState === "exported") {
-      finalState = "exported";
-    }
+    const finalState = result.workflowState;
     await completeRun(db, run.id, { stateAfter: finalState, latencyMs: Date.now() - start });
     await updateWorkflowState(db, campaignId, finalState);
 
