@@ -4,6 +4,63 @@ All notable changes to the Marketing Campaign Agent project.
 
 ---
 
+## 2026-05-06 — Sprint 5: Observability + Safety
+
+### Audit Log
+
+- Added `audit_logs` table (append-only, no foreign key constraints so audit writes never fail in error paths).
+- Events wired: `campaign.created`, `job.enqueued`, `job.started`, `job.succeeded`, `job.failed`, `job.cancelled`, `node.completed`, `human.approved`, `export.downloaded`.
+- `src/lib/audit/events.ts` — typed event names.
+- `src/lib/audit/logger.ts` — INSERT-only `writeAuditEvent(db, input)` function.
+
+### Structured Logger
+
+- `src/lib/logging/logger.ts` — zero-dependency JSON-line logger (`logger.info/warn/error/debug`).
+- Worker emits structured logs for `worker.starting`, `worker.ready`, `job.started`, `job.succeeded`, `job.failed`, `job.skipped.cancelled` with `jobId`, `campaignId`, `type`, `latencyMs`.
+
+### Sentry
+
+- Installed `@sentry/node`.
+- `src/lib/observability/sentry.ts` — `initSentry()` reads `SENTRY_DSN` env var (no-op if unset), `captureException(error, context)` wraps Sentry scope.
+- Worker calls `initSentry()` on startup; job failures call `captureException` with job context.
+
+### Token + Cost Tracking
+
+- `src/lib/llm/usage-context.ts` — `AsyncLocalStorage`-based accumulator. `runWithUsageTracking(fn)` wraps any async call tree; `recordApiUsage(usage)` is called inside `completeJsonPrompt` / `completeChatPrompt` automatically — no threading required.
+- `estimateCostUsd(usage, model)` uses a built-in rate table (DeepSeek default: $0.27/M input, $1.10/M output). Overridable via `MODEL_COST_INPUT_PER_M` / `MODEL_COST_OUTPUT_PER_M` env vars.
+- `agent_runs` table: added `prompt_tokens`, `completion_tokens`, `total_tokens`, `estimated_cost_usd` columns.
+- `completeRun` updated to persist token and cost data.
+- `generateStrategyHandler` and `generateModuleHandler` wrap execution in `runWithUsageTracking` and store results on run completion.
+
+### Admin Job Controls
+
+- `src/lib/jobs/repository.ts` — `cancelAgentJob(db, jobId)`: marks `queued` or `running` jobs as `cancelled`. Worker skips cancelled jobs on pickup.
+- `src/server/admin/jobs.ts` — three server functions:
+  - `adminListJobsFn` — list all jobs for a campaign.
+  - `adminRetryJobFn` — creates a new job from a failed job's params (preserves failed job for audit).
+  - `adminCancelJobFn` — cancels job + writes `job.cancelled` audit event.
+
+### Database Migration
+
+- `drizzle/0002_brown_inhumans.sql` — adds `audit_logs` table and token columns to `agent_runs`.
+
+### Documentation
+
+- `docs/operations.md` — manual + automated backup, 30-day retention, restore steps, PITR note, structured log reference, audit query examples, token cost config, admin control usage.
+
+### Files Created
+
+- `src/lib/audit/events.ts`
+- `src/lib/audit/logger.ts`
+- `src/lib/logging/logger.ts`
+- `src/lib/observability/sentry.ts`
+- `src/lib/llm/usage-context.ts`
+- `src/server/admin/jobs.ts`
+- `docs/operations.md`
+- `drizzle/0002_brown_inhumans.sql`
+
+---
+
 ## 2026-05-04 — Frontend Visibility + Backend Bugfixes
 
 ### Frontend

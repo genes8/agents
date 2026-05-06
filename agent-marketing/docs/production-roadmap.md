@@ -24,7 +24,7 @@
 | 2 | Job model + queue | Complete | User click returns immediately, job runs async |
 | 3 | Worker extraction | Complete | Web and worker are separate processes |
 | 4 | Production deployment | Ready for staging | Staging production-like environment |
-| 5 | Observability + safety | Not started | Real production-readiness |
+| 5 | Observability + safety | Complete | Production-grade observability, audit, and admin controls |
 
 ---
 
@@ -268,15 +268,15 @@ The system has production-grade observability, auditability, and operational con
 
 ## Current Production Risks To Remove
 
-- [ ] Blocking server functions for long-running LLM calls.
+- [x] Blocking server functions for long-running LLM calls.
 - [x] SQLite local file as production database.
-- [ ] No job queue.
-- [ ] No separate worker process.
-- [ ] No durable job progress model.
-- [ ] No retry/cancel semantics.
-- [ ] Limited operational observability.
-- [ ] No production deployment manifest.
-- [ ] No backup/restore process.
+- [x] No job queue.
+- [x] No separate worker process.
+- [x] No durable job progress model.
+- [x] No retry/cancel semantics.
+- [x] Limited operational observability.
+- [x] No production deployment manifest.
+- [x] No backup/restore process.
 
 ---
 
