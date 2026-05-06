@@ -8,9 +8,10 @@ type ExportActionsProps = {
   campaignId?: string | null;
   workflowState?: CampaignWorkflowState | null;
   onExported?: (workflowState: CampaignWorkflowState) => void;
+  refreshToken?: number;
 };
 
-export function ExportActions({ workspace, campaignId, workflowState, onExported }: ExportActionsProps) {
+export function ExportActions({ workspace, campaignId, workflowState, onExported, refreshToken }: ExportActionsProps) {
   const [events, setEvents] = useState<ExportEvent[]>([]);
   const disabled = !workspace || (workflowState !== "approved" && workflowState !== "exported");
 
@@ -23,7 +24,7 @@ export function ExportActions({ workspace, campaignId, workflowState, onExported
     getExportEventsFn({ data: { campaignId } })
       .then((rows) => setEvents(rows))
       .catch(() => setEvents([]));
-  }, [campaignId]);
+  }, [campaignId, refreshToken]);
 
   async function handleExport(format: "markdown" | "json") {
     if (!workspace) return;

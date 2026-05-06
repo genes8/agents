@@ -1,15 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import type { Db } from "../client";
 import { exportEvents } from "../schema";
+import { newId, now } from "../id";
 import type { CampaignId, ExportEvent, UserId } from "../../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
-
-function now(): Date {
-  return new Date();
-}
 
 export async function saveExportEvent(
   db: Db,

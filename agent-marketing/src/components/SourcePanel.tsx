@@ -40,7 +40,7 @@ export function SourcePanel({ campaignId, refreshToken }: SourcePanelProps) {
             </div>
             {s.title && <p className="source-title">{s.title}</p>}
             {s.snippet && <p className="source-snippet">{s.snippet}</p>}
-            {s.sourceUrl && (
+            {s.sourceUrl && /^https?:\/\//.test(s.sourceUrl) && (
               <a className="source-url" href={s.sourceUrl} rel="noopener noreferrer" target="_blank">
                 {s.sourceUrl}
               </a>

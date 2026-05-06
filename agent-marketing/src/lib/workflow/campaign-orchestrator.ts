@@ -84,7 +84,8 @@ export async function generateStrategyHandler(
     await writeAuditEvent(db, { event: "node.completed", userId, campaignId, runId: run.id, meta: { node: "generate_strategy", latencyMs } });
 
     const updated = await getCampaign(db, campaignId, userId);
-    return updated!;
+    if (!updated) throw new Error(`Campaign ${campaignId} not found after strategy generation`);
+    return updated;
   } catch (e) {
     await failRun(db, run.id, {
       type: "generation_error",
@@ -137,7 +138,8 @@ export async function generateModuleHandler(
     await writeAuditEvent(db, { event: "node.completed", userId, campaignId, runId: run.id, meta: { node: `generate_module_${module}`, latencyMs } });
 
     const updated = await getCampaign(db, campaignId, userId);
-    return updated!;
+    if (!updated) throw new Error(`Campaign ${campaignId} not found after module generation`);
+    return updated;
   } catch (e) {
     await failRun(db, run.id, {
       type: "generation_error",
@@ -187,7 +189,8 @@ export async function refineModuleHandler(
     await completeRun(db, run.id, { latencyMs: Date.now() - start });
 
     const updated = await getCampaign(db, campaignId, userId);
-    return updated!;
+    if (!updated) throw new Error(`Campaign ${campaignId} not found after refinement`);
+    return updated;
   } catch (e) {
     await failRun(db, run.id, {
       type: "refinement_error",
@@ -228,7 +231,8 @@ export async function approveQcHandler(
   await updateWorkflowState(db, campaignId, "approved");
   await writeAuditEvent(db, { event: "human.approved", userId, campaignId });
   const updated = await getCampaign(db, campaignId, userId);
-  return updated!;
+  if (!updated) throw new Error(`Campaign ${campaignId} not found after approval`);
+  return updated;
 }
 
 export async function rejectQcHandler(
@@ -240,7 +244,8 @@ export async function rejectQcHandler(
   if (!workspace) throw new Error(`Campaign not found: ${campaignId}`);
   await updateWorkflowState(db, campaignId, "modules_ready");
   const updated = await getCampaign(db, campaignId, userId);
-  return updated!;
+  if (!updated) throw new Error(`Campaign ${campaignId} not found after rejection`);
+  return updated;
 }
 
 export async function getMessagesHandler(
@@ -343,7 +348,7 @@ export async function chatHandler(
   const previousMessages = await getMessagesByCampaign(db, campaignId, 20);
   const { getLlmConfig, createLlmClient } = await import("../llm/client");
   const config = getLlmConfig();
-  const client = createLlmClient(config);
+  const client = createLlmClient();
 
   const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
     { role: "system", content: context },
@@ -387,7 +392,7 @@ function resolveRefinementTarget(
 }
 
 function isRefinementIntent(content: string): boolean {
-  return /make this more|rewrite this|refine this|turn this into/i.test(content);
+  return /make this (more|less|shorter|longer)|rewrite this|refine this|turn this into|edit this|change this|improve this|update this|tweak this|simplify this|shorten this|lengthen this/i.test(content);
 }
 
 export async function recordExportHandler(
@@ -401,9 +406,14 @@ export async function recordExportHandler(
   if (workspace.workflowState !== "approved" && workspace.workflowState !== "exported") {
     throw new Error(`Campaign ${campaignId} must be approved before export`);
   }
+  const allowedFormats = ["markdown", "json"] as const;
+  if (!allowedFormats.includes(format as (typeof allowedFormats)[number])) {
+    throw new Error(`Invalid export format: ${format}`);
+  }
   await saveExportEvent(db, { campaignId, userId, format });
   await updateWorkflowState(db, campaignId, "exported");
   await writeAuditEvent(db, { event: "export.downloaded", userId, campaignId, meta: { format } });
   const updated = await getCampaign(db, campaignId, userId);
-  return updated!;
+  if (!updated) throw new Error(`Campaign ${campaignId} not found after export`);
+  return updated;
 }

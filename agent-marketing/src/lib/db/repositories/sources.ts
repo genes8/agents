@@ -1,15 +1,8 @@
 import { eq, and } from "drizzle-orm";
 import type { Db } from "../client";
 import { mcpSources } from "../schema";
+import { newId, now } from "../id";
 import type { CampaignId, McpSource, McpSourceId, RunId } from "../../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
-
-function now(): Date {
-  return new Date();
-}
 
 export async function saveSource(
   db: Db,

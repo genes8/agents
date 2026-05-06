@@ -1,11 +1,8 @@
 import { eq, desc } from "drizzle-orm";
 import type { Db } from "../client";
 import { campaignMessages } from "../schema";
+import { newId } from "../id";
 import type { CampaignId, CampaignMessage, CampaignModuleId, RunId } from "../../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
 
 export async function saveMessage(
   db: Db,

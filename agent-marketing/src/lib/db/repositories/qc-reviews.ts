@@ -1,12 +1,9 @@
 import { eq, desc } from "drizzle-orm";
 import type { Db } from "../client";
 import { qcReviews } from "../schema";
+import { newId } from "../id";
 import type { CampaignId, CampaignModuleId, PersistedQcReview, QcReviewIssue, RunId } from "../../campaign/types";
 import type { QcReviewResult } from "../../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
 
 export async function saveQcReview(
   db: Db,

@@ -45,15 +45,15 @@ export function StrategyPanel({ strategy }: StrategyPanelProps) {
 
         <SectionHeader title="Pain points" copyText={strategy.painPoints.join("\n")} />
         <ul>
-          {strategy.painPoints.map((point) => (
-            <li key={point}>{point}</li>
+          {strategy.painPoints.map((point, i) => (
+            <li key={i}>{point}</li>
           ))}
         </ul>
 
         <SectionHeader title="Hooks" copyText={strategy.hooks.join("\n")} />
         <ul>
-          {strategy.hooks.map((hook) => (
-            <li key={hook}>{hook}</li>
+          {strategy.hooks.map((hook, i) => (
+            <li key={i}>{hook}</li>
           ))}
         </ul>
 

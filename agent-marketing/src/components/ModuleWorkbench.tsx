@@ -64,15 +64,15 @@ export function ModuleWorkbench({ strategy, modules: outputs, generatedKinds, di
                   <CopyButton text={formatModuleText(output)} label="Copy module" />
                 </div>
                 <p>{output.summary}</p>
-                {output.sections.map((section) => (
-                  <div key={section.title}>
+                {output.sections.map((section, si) => (
+                  <div key={si}>
                     <div className="section-hdr">
                       <h4>{section.title}</h4>
                       <CopyButton text={section.items.join("\n")} />
                     </div>
                     <ul>
-                      {section.items.map((item) => (
-                        <li key={item}>{item}</li>
+                      {section.items.map((item, ii) => (
+                        <li key={ii}>{item}</li>
                       ))}
                     </ul>
                   </div>

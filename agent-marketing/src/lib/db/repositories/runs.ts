@@ -1,16 +1,9 @@
 import { eq, desc } from "drizzle-orm";
 import type { Db } from "../client";
 import { agentRuns } from "../schema";
+import { newId, now } from "../id";
 import type { CampaignId, CampaignWorkflowState, GenerationRun, RunId } from "../../campaign/types";
 import type { TokenUsage } from "../../llm/usage-context";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
-
-function now(): Date {
-  return new Date();
-}
 
 export async function createRun(
   db: Db,

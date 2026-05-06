@@ -26,7 +26,6 @@ COPY --from=build /app/dist-worker ./dist-worker
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build /app/scripts ./scripts
-COPY --from=build /app/src ./src
 
 EXPOSE 3000
 

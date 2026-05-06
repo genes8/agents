@@ -51,25 +51,37 @@ export function getLlmConfig(): LlmConfig {
     throw new Error("Missing OPENAI_API_KEY. Add your DeepSeek API key to .env.local.");
   }
 
+  const temperature = Number(process.env.OPENAI_TEMPERATURE ?? "0.7");
+  const maxTokens = Number(process.env.OPENAI_MAX_TOKENS ?? "4096");
+
+  if (isNaN(temperature)) throw new Error(`OPENAI_TEMPERATURE is not a valid number: "${process.env.OPENAI_TEMPERATURE}"`);
+  if (isNaN(maxTokens)) throw new Error(`OPENAI_MAX_TOKENS is not a valid number: "${process.env.OPENAI_MAX_TOKENS}"`);
+
   return {
     apiKey,
     baseURL: process.env.OPENAI_BASE_URL ?? "https://api.deepseek.com/v1",
     model: process.env.OPENAI_DEFAULT_MODEL ?? "deepseek-v4-flash",
-    temperature: Number(process.env.OPENAI_TEMPERATURE ?? "0.7"),
-    maxTokens: Number(process.env.OPENAI_MAX_TOKENS ?? "4096"),
+    temperature,
+    maxTokens,
   };
 }
 
-export function createLlmClient(config = getLlmConfig()): OpenAI {
-  return new OpenAI({
-    apiKey: config.apiKey,
-    baseURL: config.baseURL,
-  });
+let _defaultClient: OpenAI | null = null;
+
+export function createLlmClient(config?: LlmConfig): OpenAI {
+  if (!config) {
+    if (!_defaultClient) {
+      const defaultConfig = getLlmConfig();
+      _defaultClient = new OpenAI({ apiKey: defaultConfig.apiKey, baseURL: defaultConfig.baseURL });
+    }
+    return _defaultClient;
+  }
+  return new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL });
 }
 
 export async function completeJsonPrompt(input: CompleteJsonPromptInput): Promise<string> {
   const config = getLlmConfig();
-  const client = input.client ?? createLlmClient(config);
+  const client = input.client ?? createLlmClient();
   const response = await client.chat.completions.create({
     model: input.model ?? config.model,
     temperature: config.temperature,
@@ -94,7 +106,7 @@ export async function completeJsonPrompt(input: CompleteJsonPromptInput): Promis
 
 export async function completeChatPrompt(input: CompleteJsonPromptInput): Promise<string> {
   const config = getLlmConfig();
-  const client = input.client ?? createLlmClient(config);
+  const client = input.client ?? createLlmClient();
   const response = await client.chat.completions.create({
     model: input.model ?? config.model,
     temperature: config.temperature,
@@ -129,7 +141,7 @@ export async function completeStructuredPromptWithRecovery<T>(
   options: { fallbackModel?: string } = {},
 ): Promise<T> {
   const config = getLlmConfig();
-  const client = input.client ?? createLlmClient(config);
+  const client = input.client ?? createLlmClient();
   const model = input.model ?? config.model;
 
   const attempt = async (useClient: ChatCompletionClient, useModel: string): Promise<T> => {

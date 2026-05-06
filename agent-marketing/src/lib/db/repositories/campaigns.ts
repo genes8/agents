@@ -2,6 +2,7 @@ import { eq, and, desc } from "drizzle-orm";
 import type { Db } from "../client";
 import { DEFAULT_USER_ID } from "../client";
 import { campaigns, campaignStrategies, campaignModules, users } from "../schema";
+import { newId, now } from "../id";
 import type {
   CampaignBrief,
   CampaignId,
@@ -13,14 +14,6 @@ import type {
   PersistedCampaignWorkspace,
   UserId,
 } from "../../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
-
-function now(): Date {
-  return new Date();
-}
 
 export async function ensureUser(db: Db, userId: UserId): Promise<void> {
   await db.insert(users).values({ id: userId, createdAt: now() }).onConflictDoNothing();
@@ -72,26 +65,16 @@ export async function getCampaign(
   campaignId: CampaignId,
   userId: UserId = DEFAULT_USER_ID,
 ): Promise<PersistedCampaignWorkspace | null> {
-  const row = (await db
-    .select()
-    .from(campaigns)
-    .where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, userId)))
-    .limit(1))[0];
+  const [campaignRows, strategyRows, moduleRows] = await Promise.all([
+    db.select().from(campaigns).where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, userId))).limit(1),
+    db.select().from(campaignStrategies).where(eq(campaignStrategies.campaignId, campaignId)).orderBy(desc(campaignStrategies.createdAt)).limit(1),
+    db.select().from(campaignModules).where(eq(campaignModules.campaignId, campaignId)).orderBy(campaignModules.createdAt),
+  ]);
 
+  const row = campaignRows[0];
   if (!row) return null;
 
-  const strategy = (await db
-    .select()
-    .from(campaignStrategies)
-    .where(eq(campaignStrategies.campaignId, campaignId))
-    .orderBy(desc(campaignStrategies.createdAt))
-    .limit(1))[0];
-
-  const moduleRows = await db
-    .select()
-    .from(campaignModules)
-    .where(eq(campaignModules.campaignId, campaignId))
-    .orderBy(campaignModules.createdAt);
+  const strategy = strategyRows[0];
 
   const modules: PersistedCampaignModule[] = moduleRows.map((m) => ({
     id: m.id,

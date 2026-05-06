@@ -11,6 +11,7 @@ export function CampaignChat({ campaignId, refreshToken }: CampaignChatProps) {
   const [messages, setMessages] = useState<CampaignMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,11 +35,12 @@ export function CampaignChat({ campaignId, refreshToken }: CampaignChatProps) {
     const content = input.trim();
     setInput("");
     setBusy(true);
+    setError("");
     try {
       const result = await chatFn({ data: { campaignId, content } });
       setMessages(result.messages as CampaignMessage[]);
-    } catch {
-      // silent — message will be re-shown on next load
+    } catch (e) {
+      setError((e as Error).message || "Failed to send message. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -59,6 +61,7 @@ export function CampaignChat({ campaignId, refreshToken }: CampaignChatProps) {
         <p>Ask questions or request refinements to your campaign strategy.</p>
       </div>
       <div className="card-bd">
+        {error && <p className="error-banner">{error}</p>}
         {messages.length > 0 && (
           <div className="chat-messages">
             {messages.map((m) => (

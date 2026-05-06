@@ -65,63 +65,74 @@ function HomePage() {
   useEffect(() => {
     if (!activeJob || !campaignId) return;
 
-    const interval = setInterval(() => {
-      void getAgentJobByIdFn({ data: { jobId: activeJob.id } })
-        .then(async (job) => {
-          setActiveJob((current) => (current ? { ...current, status: job.status } : current));
+    const currentJob = activeJob;
+    const currentCampaignId = campaignId;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 60;
 
-          if (job.status === "queued") {
-            setStatus(activeJob.type === "generate_strategy" ? "Strategy job queued..." : "Module job queued...");
-            return;
-          }
+    function nextDelay(): number {
+      return Math.min(1200 * Math.pow(1.5, Math.floor(attempts / 5)), 10000);
+    }
 
-          if (job.status === "running") {
-            setStatus(
-              activeJob.type === "generate_strategy"
-                ? "Building Strategy Core..."
-                : `Generating ${activeJob.module} module...`,
-            );
-            return;
-          }
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-          if (job.status === "failed") {
-            setError(job.error?.message ?? "Job failed.");
-            setStatus("");
-            setActiveJob(null);
-            clearInterval(interval);
-            return;
-          }
+    async function poll() {
+      if (attempts >= MAX_ATTEMPTS) {
+        setError("Job timed out. Please refresh and check campaign history.");
+        setStatus("");
+        setActiveJob(null);
+        return;
+      }
+      attempts += 1;
 
-          if (job.status === "succeeded") {
-            const ws = await getCampaignFn({ data: { campaignId } });
-            if (ws) {
-              setCampaignId(ws.id);
-              setBrief(ws.brief);
-              setStrategy(ws.strategy ?? null);
-              applyWorkspaceModules(ws.modules);
-              setWorkflowState(ws.workflowState);
-              setHistoryToken((t) => t + 1);
-              if (activeJob.type === "generate_strategy") {
-                setStatus("Strategy Core ready.");
-              } else {
-                const generated = ws.modules.find((m) => m.moduleKind === activeJob.module);
-                const stateMsg = ws.workflowState === "review_pending" ? " — QC review required." : " ready.";
-                setStatus(`${generated?.output.title ?? activeJob.module}${stateMsg}`);
-              }
-            }
-            setActiveJob(null);
-            clearInterval(interval);
-          }
-        })
-        .catch((e) => {
-          setError((e as Error).message);
+      try {
+        const job = await getAgentJobByIdFn({ data: { jobId: currentJob.id } });
+        setActiveJob((current) => (current ? { ...current, status: job.status } : current));
+
+        if (job.status === "queued") {
+          setStatus(currentJob.type === "generate_strategy" ? "Strategy job queued..." : "Module job queued...");
+        } else if (job.status === "running") {
+          setStatus(
+            currentJob.type === "generate_strategy"
+              ? "Building Strategy Core..."
+              : `Generating ${currentJob.module} module...`,
+          );
+        } else if (job.status === "failed") {
+          setError(job.error?.message ?? "Job failed.");
           setStatus("");
           setActiveJob(null);
-          clearInterval(interval);
-        });
-    }, 1200);
+          return;
+        } else if (job.status === "succeeded") {
+          const ws = await getCampaignFn({ data: { campaignId: currentCampaignId } });
+          if (ws) {
+            setCampaignId(ws.id);
+            setBrief(ws.brief);
+            setStrategy(ws.strategy ?? null);
+            applyWorkspaceModules(ws.modules);
+            setWorkflowState(ws.workflowState);
+            setHistoryToken((t) => t + 1);
+            if (currentJob.type === "generate_strategy") {
+              setStatus("Strategy Core ready.");
+            } else {
+              const generated = ws.modules.find((m) => m.moduleKind === currentJob.module);
+              const stateMsg = ws.workflowState === "review_pending" ? " — QC review required." : " ready.";
+              setStatus(`${generated?.output.title ?? currentJob.module}${stateMsg}`);
+            }
+          }
+          setActiveJob(null);
+          return;
+        }
 
-    return () => clearInterval(interval);
+        timeoutId = setTimeout(() => { void poll(); }, nextDelay());
+      } catch (e) {
+        setError((e as Error).message);
+        setStatus("");
+        setActiveJob(null);
+      }
+    }
+
+    timeoutId = setTimeout(() => { void poll(); }, nextDelay());
+    return () => clearTimeout(timeoutId);
   }, [activeJob, campaignId]);
 
   async function handleGenerateStrategy() {
@@ -245,6 +256,7 @@ function HomePage() {
           <ExportActions
             campaignId={campaignId}
             onExported={handleExportStateChange}
+            refreshToken={historyToken}
             workflowState={workflowState}
             workspace={workspace}
           />

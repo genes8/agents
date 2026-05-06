@@ -1,16 +1,9 @@
 import { desc, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { agentJobs } from "../db/schema";
+import { newId, now } from "../db/id";
 import type { AgentJob, AgentJobError, AgentJobId, AgentJobPayload, AgentJobProgress, AgentJobStatus, AgentJobType } from "./types";
 import type { CampaignId, UserId } from "../campaign/types";
-
-function newId(): string {
-  return crypto.randomUUID();
-}
-
-function now(): Date {
-  return new Date();
-}
 
 export async function createAgentJob(
   db: Db,
