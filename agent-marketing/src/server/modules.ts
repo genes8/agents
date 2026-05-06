@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { CampaignId, CampaignModule, CampaignModuleId } from "../lib/campaign/types";
+import { getDb } from "../lib/db/client";
+import { enqueueAgentJob } from "../lib/jobs/handlers";
+import { getJobQueue } from "../lib/jobs/queue";
 import {
-  generateStrategyHandler,
-  generateModuleHandler,
   refineModuleHandler,
   approveQcHandler,
   rejectQcHandler,
@@ -21,7 +22,13 @@ export const generateStrategyByCampaignId = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const userId = getCurrentUserId();
     await checkRateLimit({ userId, action: "generate_strategy" });
-    return generateStrategyHandler(data.campaignId, userId);
+    const job = await enqueueAgentJob(getDb(), await getJobQueue(), {
+      campaignId: data.campaignId,
+      userId,
+      type: "generate_strategy",
+      payload: {},
+    });
+    return { jobId: job.id };
   });
 
 export const generateModuleByCampaignId = createServerFn({ method: "POST" })
@@ -29,7 +36,13 @@ export const generateModuleByCampaignId = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const userId = getCurrentUserId();
     await checkRateLimit({ userId, action: "generate_module" });
-    return generateModuleHandler(data.campaignId, data.module, userId);
+    const job = await enqueueAgentJob(getDb(), await getJobQueue(), {
+      campaignId: data.campaignId,
+      userId,
+      type: "generate_module",
+      payload: { module: data.module },
+    });
+    return { jobId: job.id };
   });
 
 export const refineModuleById = createServerFn({ method: "POST" })

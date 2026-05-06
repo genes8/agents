@@ -9,9 +9,11 @@ import { ReviewPanel } from "../components/ReviewPanel";
 import { SourcePanel } from "../components/SourcePanel";
 import { StrategyPanel } from "../components/StrategyPanel";
 import type { CampaignBrief, CampaignModule, CampaignModuleOutput, CampaignStrategy, CampaignWorkflowState } from "../lib/campaign/types";
+import type { AgentJobStatus } from "../lib/jobs/types";
 import { checkModelConfiguration } from "../server/campaign";
 import { createCampaignFn, getCampaignFn } from "../server/campaigns";
 import { generateStrategyByCampaignId, generateModuleByCampaignId } from "../server/modules";
+import { getAgentJobByIdFn } from "../server/runs";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -29,6 +31,13 @@ const initialBrief: CampaignBrief = {
   extraContext: "",
 };
 
+type ActiveJob = {
+  id: string;
+  type: "generate_strategy" | "generate_module";
+  module?: CampaignModule;
+  status: AgentJobStatus;
+};
+
 function HomePage() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [brief, setBrief] = useState<CampaignBrief>(initialBrief);
@@ -40,6 +49,7 @@ function HomePage() {
   const [error, setError] = useState<string>("");
   const [modelInfo, setModelInfo] = useState<string>("");
   const [historyToken, setHistoryToken] = useState(0);
+  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
 
   const workspace = useMemo(
     () => (strategy ? { brief, strategy, modules } : null),
@@ -52,9 +62,71 @@ function HomePage() {
       .catch((e) => setModelInfo((e as Error).message));
   }, []);
 
+  useEffect(() => {
+    if (!activeJob || !campaignId) return;
+
+    const interval = setInterval(() => {
+      void getAgentJobByIdFn({ data: { jobId: activeJob.id } })
+        .then(async (job) => {
+          setActiveJob((current) => (current ? { ...current, status: job.status } : current));
+
+          if (job.status === "queued") {
+            setStatus(activeJob.type === "generate_strategy" ? "Strategy job queued..." : "Module job queued...");
+            return;
+          }
+
+          if (job.status === "running") {
+            setStatus(
+              activeJob.type === "generate_strategy"
+                ? "Building Strategy Core..."
+                : `Generating ${activeJob.module} module...`,
+            );
+            return;
+          }
+
+          if (job.status === "failed") {
+            setError(job.error?.message ?? "Job failed.");
+            setStatus("");
+            setActiveJob(null);
+            clearInterval(interval);
+            return;
+          }
+
+          if (job.status === "succeeded") {
+            const ws = await getCampaignFn({ data: { campaignId } });
+            if (ws) {
+              setCampaignId(ws.id);
+              setBrief(ws.brief);
+              setStrategy(ws.strategy ?? null);
+              applyWorkspaceModules(ws.modules);
+              setWorkflowState(ws.workflowState);
+              setHistoryToken((t) => t + 1);
+              if (activeJob.type === "generate_strategy") {
+                setStatus("Strategy Core ready.");
+              } else {
+                const generated = ws.modules.find((m) => m.moduleKind === activeJob.module);
+                const stateMsg = ws.workflowState === "review_pending" ? " — QC review required." : " ready.";
+                setStatus(`${generated?.output.title ?? activeJob.module}${stateMsg}`);
+              }
+            }
+            setActiveJob(null);
+            clearInterval(interval);
+          }
+        })
+        .catch((e) => {
+          setError((e as Error).message);
+          setStatus("");
+          setActiveJob(null);
+          clearInterval(interval);
+        });
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [activeJob, campaignId]);
+
   async function handleGenerateStrategy() {
     setError("");
-    setStatus("Building Strategy Core...");
+    setStatus("Queueing Strategy Core...");
     try {
       const campaign = campaignId
         ? { id: campaignId }
@@ -63,12 +135,9 @@ function HomePage() {
       const id = campaign.id;
       setCampaignId(id);
 
-      const ws = await generateStrategyByCampaignId({ data: { campaignId: id } });
-      setStrategy(ws.strategy ?? null);
-      applyWorkspaceModules(ws.modules);
-      setWorkflowState(ws.workflowState);
-      setHistoryToken((t) => t + 1);
-      setStatus("Strategy Core ready.");
+      const { jobId } = await generateStrategyByCampaignId({ data: { campaignId: id } });
+      setActiveJob({ id: jobId, type: "generate_strategy", status: "queued" });
+      setStatus("Strategy job queued...");
     } catch (e) {
       setError((e as Error).message);
       setStatus("");
@@ -78,15 +147,11 @@ function HomePage() {
   async function handleGenerateModule(module: CampaignModule) {
     if (!strategy || !campaignId) return;
     setError("");
-    setStatus(`Generating ${module} module...`);
+    setStatus(`Queueing ${module} module...`);
     try {
-      const ws = await generateModuleByCampaignId({ data: { campaignId, module } });
-      setStrategy(ws.strategy ?? null);
-      applyWorkspaceModules(ws.modules);
-      setWorkflowState(ws.workflowState);
-      const generated = ws.modules.find((m) => m.moduleKind === module);
-      const stateMsg = ws.workflowState === "review_pending" ? " — QC review required." : " ready.";
-      setStatus(`${generated?.output.title ?? module}${stateMsg}`);
+      const { jobId } = await generateModuleByCampaignId({ data: { campaignId, module } });
+      setActiveJob({ id: jobId, type: "generate_module", module, status: "queued" });
+      setStatus("Module job queued...");
     } catch (e) {
       setError((e as Error).message);
       setStatus("");
@@ -130,7 +195,7 @@ function HomePage() {
     }
   }
 
-  const busy = status.endsWith("...");
+  const busy = Boolean(activeJob) || status.endsWith("...");
 
   function applyWorkspaceModules(mods: Array<{ moduleKind: CampaignModule; output: CampaignModuleOutput }>) {
     setModules(mods.map((m) => m.output));

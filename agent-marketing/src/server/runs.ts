@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getDb } from "../lib/db/client";
+import { getAgentJob } from "../lib/jobs/repository";
 import {
   getSourcesHandler,
   recordExportHandler,
@@ -36,3 +38,16 @@ export const getMessagesFn = createServerFn({ method: "GET" })
 export const getExportEventsFn = createServerFn({ method: "GET" })
   .inputValidator((input: { campaignId: string }) => input)
   .handler(async ({ data }) => getExportEventsHandler(data.campaignId, getCurrentUserId()));
+
+export const getAgentJobByIdFn = createServerFn({ method: "GET" })
+  .inputValidator((input: { jobId: string }) => input)
+  .handler(async ({ data }) => {
+    const job = await getAgentJob(getDb(), data.jobId);
+    const userId = getCurrentUserId();
+
+    if (!job || job.userId !== userId) {
+      throw new Error("Job not found.");
+    }
+
+    return job;
+  });
