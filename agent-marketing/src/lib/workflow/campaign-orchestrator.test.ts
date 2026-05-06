@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { createTestDb } from "../db/client";
+import { describe, it, expect, vi, beforeEach, type Mock, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../db/client";
 import { createCampaign, saveStrategy, upsertModule } from "../db/repositories/campaigns";
 import { saveSource } from "../db/repositories/sources";
 import { saveQcReview } from "../db/repositories/qc-reviews";
@@ -71,11 +71,15 @@ const testStrategy: CampaignStrategy = {
 };
 
 describe("campaign-orchestrator handlers", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     vi.spyOn(clientModule, "getDb").mockReturnValue(db);
+  });
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("generateStrategyHandler persists strategy and creates run log", async () => {

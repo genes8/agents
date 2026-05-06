@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { createTestDb } from "../client";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../client";
 import { createCampaign } from "./campaigns";
 import { createRun, completeRun, failRun, getRun, getRunsByCampaign } from "./runs";
 import type { CampaignBrief } from "../../campaign/types";
@@ -15,13 +15,18 @@ const testBrief: CampaignBrief = {
 };
 
 describe("runs repository", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief: testBrief });
     campaignId = campaign.id;
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("creates a run with running status", async () => {

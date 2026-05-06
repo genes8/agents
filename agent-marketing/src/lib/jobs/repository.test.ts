@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { createTestDb } from "../db/client";
+import { beforeEach, describe, expect, it, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../db/client";
 import { createCampaign } from "../db/repositories/campaigns";
 import { createAgentJob, failAgentJob, getAgentJob, listAgentJobsByCampaign, startAgentJob, succeedAgentJob } from "./repository";
 import type { CampaignBrief } from "../campaign/types";
@@ -15,13 +15,18 @@ const brief: CampaignBrief = {
 };
 
 describe("agent job repository", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief, userId: "user-1" });
     campaignId = campaign.id;
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("creates a queued job with typed payload", async () => {

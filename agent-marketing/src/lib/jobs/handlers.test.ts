@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestDb } from "../db/client";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../db/client";
 import { createCampaign } from "../db/repositories/campaigns";
 import { getAgentJob } from "./repository";
 import { enqueueAgentJob, queueNameForJobType, type BossQueueClient } from "./handlers";
@@ -16,18 +16,23 @@ const brief: CampaignBrief = {
 };
 
 describe("job handlers", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
   let boss: BossQueueClient;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief, userId: "user-1" });
     campaignId = campaign.id;
     boss = {
       createQueue: vi.fn().mockResolvedValue(undefined),
       send: vi.fn().mockResolvedValue("boss-job-1"),
     };
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("enqueues a generate module job and stores boss job id", async () => {

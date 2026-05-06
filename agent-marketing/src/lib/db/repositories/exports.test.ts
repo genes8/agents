@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { createTestDb } from "../client";
+import { beforeEach, describe, expect, it, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../client";
 import { createCampaign } from "./campaigns";
 import { getExportEventsByCampaign, saveExportEvent } from "./exports";
 import type { CampaignBrief } from "../../campaign/types";
@@ -15,13 +15,18 @@ const testBrief: CampaignBrief = {
 };
 
 describe("exports repository", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief: testBrief });
     campaignId = campaign.id;
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("returns an empty list when no export events exist", async () => {

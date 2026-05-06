@@ -147,20 +147,10 @@ export async function saveStrategy(
   strategy: CampaignStrategy,
 ): Promise<void> {
   const ts = now();
-  await db
-    .insert(campaignStrategies)
-    .values({
-      id: newId(),
-      campaignId,
-      strategyJson: strategy,
-      createdAt: ts,
-    })
-    ;
-  await db
-    .update(campaigns)
-    .set({ workflowState: "strategy_ready", updatedAt: ts })
-    .where(eq(campaigns.id, campaignId))
-    ;
+  await db.transaction(async (tx) => {
+    await tx.insert(campaignStrategies).values({ id: newId(), campaignId, strategyJson: strategy, createdAt: ts });
+    await tx.update(campaigns).set({ workflowState: "strategy_ready", updatedAt: ts }).where(eq(campaigns.id, campaignId));
+  });
 }
 
 export async function upsertModule(

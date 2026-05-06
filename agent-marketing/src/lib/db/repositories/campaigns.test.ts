@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { createTestDb, DEFAULT_USER_ID } from "../client";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createTestDbWithCleanup, DEFAULT_USER_ID, type Db } from "../client";
 import { createCampaign, getCampaign, listCampaigns, saveStrategy, upsertModule } from "./campaigns";
 import type { CampaignBrief, CampaignStrategy } from "../../campaign/types";
 
@@ -25,10 +25,14 @@ const testStrategy: CampaignStrategy = {
 };
 
 describe("campaigns repository", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
+  });
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("creates campaign and returns draft_brief workspace", async () => {

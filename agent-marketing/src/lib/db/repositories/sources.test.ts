@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { createTestDb } from "../client";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../client";
 import { createCampaign } from "./campaigns";
 import { saveSource, getSourcesByCampaign, getSourcesByRun } from "./sources";
 import { createRun } from "./runs";
@@ -16,13 +16,18 @@ const testBrief: CampaignBrief = {
 };
 
 describe("sources repository", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief: testBrief });
     campaignId = campaign.id;
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("saves a source and retrieves it by campaign", async () => {

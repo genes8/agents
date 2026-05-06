@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestDb } from "../db/client";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { createTestDbWithCleanup, type Db } from "../db/client";
 import { createCampaign } from "../db/repositories/campaigns";
 import { createAgentJob, getAgentJob } from "./repository";
 import { processAgentJob } from "./processing";
@@ -16,13 +16,18 @@ const brief: CampaignBrief = {
 };
 
 describe("job processing", () => {
-  let db: Awaited<ReturnType<typeof createTestDb>>;
+  let db: Db;
+  let cleanup: () => Promise<void>;
   let campaignId: string;
 
   beforeEach(async () => {
-    db = await createTestDb();
+    ({ db, cleanup } = await createTestDbWithCleanup());
     const campaign = await createCampaign(db, { brief, userId: "user-1" });
     campaignId = campaign.id;
+  });
+
+  afterEach(async () => {
+    await cleanup();
   });
 
   it("processes a generate strategy job and marks it succeeded", async () => {
