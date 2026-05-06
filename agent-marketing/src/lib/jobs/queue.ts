@@ -2,6 +2,7 @@ import { PgBoss, type Job } from "pg-boss";
 import { getDb } from "../db/client";
 import { processAgentJob } from "./processing";
 import { queueNameForJobType } from "./handlers";
+import { logger } from "../logging/logger";
 
 type QueuePayload = { agentJobId: string };
 
@@ -22,7 +23,7 @@ async function startJobQueue(): Promise<PgBoss> {
 
   const boss = new PgBoss(connectionString);
   boss.on("error", (error: Error) => {
-    console.error("pg-boss error", error);
+    logger.error("pg-boss error", { error: error.message });
   });
 
   await boss.start();

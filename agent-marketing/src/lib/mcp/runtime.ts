@@ -35,7 +35,12 @@ export async function connectConfiguredMcpClients(configs = getMcpStdioServers()
   const connectedClients: ConnectedMcpClient[] = [];
 
   for (const config of configs) {
-    connectedClients.push(await connectStdioMcpClient(config));
+    try {
+      connectedClients.push(await connectStdioMcpClient(config));
+    } catch (error) {
+      await Promise.allSettled(connectedClients.map(({ client }) => client.close()));
+      throw error;
+    }
   }
 
   return connectedClients;

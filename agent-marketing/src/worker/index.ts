@@ -26,7 +26,7 @@ const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
 if (entryUrl === import.meta.url) {
   void startWorker().catch((error) => {
-    console.error("Worker failed to start", error);
+    logger.error("worker.failed_to_start", { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   });
 }

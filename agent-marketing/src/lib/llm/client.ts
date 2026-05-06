@@ -114,7 +114,12 @@ export async function completeStructuredPrompt<T>(
   input: CompleteJsonPromptInput,
 ): Promise<T> {
   const raw = await completeJsonPrompt(input);
-  const parsed = JSON.parse(raw) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new LlmRecoveryError("invalid_json", raw);
+  }
   return schema.parse(parsed);
 }
 

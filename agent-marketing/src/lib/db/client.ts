@@ -28,6 +28,13 @@ export async function migrateDb(db = getDb()): Promise<void> {
 }
 
 export async function createTestDb(): Promise<Db> {
+  const { db } = await createTestDbWithCleanup();
+  return db;
+}
+
+export type TestDbHandle = { db: Db; cleanup: () => Promise<void> };
+
+export async function createTestDbWithCleanup(): Promise<TestDbHandle> {
   const baseUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!baseUrl) {
     throw new Error("Missing TEST_DATABASE_URL or DATABASE_URL for Postgres repository tests.");
@@ -43,7 +50,14 @@ export async function createTestDb(): Promise<Db> {
   url.pathname = `/${databaseName}`;
   const db = createDb(url.toString());
   await migrate(db, { migrationsFolder: "./drizzle" });
-  return db;
+
+  const cleanup = async () => {
+    const dropper = postgres(baseUrl, { prepare: false });
+    await dropper`drop database if exists ${dropper(databaseName)} with (force)`;
+    await dropper.end();
+  };
+
+  return { db, cleanup };
 }
 
 export const DEFAULT_USER_ID = "default-user";

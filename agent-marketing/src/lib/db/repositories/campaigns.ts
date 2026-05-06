@@ -23,10 +23,7 @@ function now(): Date {
 }
 
 export async function ensureUser(db: Db, userId: UserId): Promise<void> {
-  const existing = (await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1))[0];
-  if (!existing) {
-    await db.insert(users).values({ id: userId, createdAt: now() });
-  }
+  await db.insert(users).values({ id: userId, createdAt: now() }).onConflictDoNothing();
 }
 
 export async function ensureDefaultUser(db: Db): Promise<void> {
@@ -173,58 +170,39 @@ export async function upsertModule(
   output: CampaignModuleOutput,
 ): Promise<PersistedCampaignModule> {
   const ts = now();
-  const existing = (await db
-    .select()
-    .from(campaignModules)
-    .where(and(eq(campaignModules.campaignId, campaignId), eq(campaignModules.moduleKind, moduleKind)))
-    .limit(1))[0];
 
-  if (existing) {
-    await db
-      .update(campaignModules)
-      .set({ outputJson: output, updatedAt: ts })
-      .where(eq(campaignModules.id, existing.id))
-      ;
-    return { ...existing, moduleKind, output, updatedAt: ts };
-  }
+  return db.transaction(async (tx) => {
+    const existing = (await tx
+      .select()
+      .from(campaignModules)
+      .where(and(eq(campaignModules.campaignId, campaignId), eq(campaignModules.moduleKind, moduleKind)))
+      .limit(1))[0];
 
-  const id = newId();
-  await db
-    .insert(campaignModules)
-    .values({
-      id,
-      campaignId,
-      moduleKind,
-      outputJson: output,
-      createdAt: ts,
-      updatedAt: ts,
-    })
-    ;
+    if (existing) {
+      await tx
+        .update(campaignModules)
+        .set({ outputJson: output, updatedAt: ts })
+        .where(eq(campaignModules.id, existing.id));
+      return { ...existing, moduleKind, output, updatedAt: ts };
+    }
 
-  const currentCampaign = (await db
-    .select({ workflowState: campaigns.workflowState })
-    .from(campaigns)
-    .where(eq(campaigns.id, campaignId))
-    .limit(1))[0];
+    const id = newId();
+    await tx.insert(campaignModules).values({ id, campaignId, moduleKind, outputJson: output, createdAt: ts, updatedAt: ts });
 
-  if (currentCampaign?.workflowState === "strategy_ready") {
-    await db
-      .update(campaigns)
-      .set({ workflowState: "modules_ready", updatedAt: ts })
+    const currentCampaign = (await tx
+      .select({ workflowState: campaigns.workflowState })
+      .from(campaigns)
       .where(eq(campaigns.id, campaignId))
-      ;
-  } else {
-    await db.update(campaigns).set({ updatedAt: ts }).where(eq(campaigns.id, campaignId));
-  }
+      .limit(1))[0];
 
-  return {
-    id,
-    campaignId,
-    moduleKind,
-    output,
-    createdAt: ts,
-    updatedAt: ts,
-  };
+    if (currentCampaign?.workflowState === "strategy_ready") {
+      await tx.update(campaigns).set({ workflowState: "modules_ready", updatedAt: ts }).where(eq(campaigns.id, campaignId));
+    } else {
+      await tx.update(campaigns).set({ updatedAt: ts }).where(eq(campaigns.id, campaignId));
+    }
+
+    return { id, campaignId, moduleKind, output, createdAt: ts, updatedAt: ts };
+  });
 }
 
 export async function updateWorkflowState(

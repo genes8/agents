@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, real, jsonb, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, real, jsonb, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -16,7 +16,9 @@ export const campaigns = pgTable("campaigns", {
   briefJson: jsonb("brief_json").notNull(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-});
+}, (t) => [
+  index("campaigns_user_id_idx").on(t.userId),
+]);
 
 export const campaignStrategies = pgTable("campaign_strategies", {
   id: text("id").primaryKey(),
@@ -25,7 +27,9 @@ export const campaignStrategies = pgTable("campaign_strategies", {
     .references(() => campaigns.id),
   strategyJson: jsonb("strategy_json").notNull(),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("campaign_strategies_campaign_id_idx").on(t.campaignId),
+]);
 
 export const campaignModules = pgTable("campaign_modules", {
   id: text("id").primaryKey(),
@@ -36,7 +40,9 @@ export const campaignModules = pgTable("campaign_modules", {
   outputJson: jsonb("output_json").notNull(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-});
+}, (t) => [
+  uniqueIndex("campaign_modules_campaign_kind_unique").on(t.campaignId, t.moduleKind),
+]);
 
 export const agentRuns = pgTable("agent_runs", {
   id: text("id").primaryKey(),
@@ -57,7 +63,9 @@ export const agentRuns = pgTable("agent_runs", {
   estimatedCostUsd: real("estimated_cost_usd"),
   createdAt: timestamp("created_at").notNull(),
   completedAt: timestamp("completed_at"),
-});
+}, (t) => [
+  index("agent_runs_campaign_id_idx").on(t.campaignId),
+]);
 
 export const mcpSources = pgTable("mcp_sources", {
   id: text("id").primaryKey(),
@@ -73,7 +81,10 @@ export const mcpSources = pgTable("mcp_sources", {
   serverName: text("server_name").notNull(),
   toolName: text("tool_name").notNull(),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("mcp_sources_campaign_id_idx").on(t.campaignId),
+  index("mcp_sources_run_id_idx").on(t.runId),
+]);
 
 export const campaignMessages = pgTable("campaign_messages", {
   id: text("id").primaryKey(),
@@ -86,7 +97,9 @@ export const campaignMessages = pgTable("campaign_messages", {
   moduleId: text("module_id"),
   runId: text("run_id"),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("campaign_messages_campaign_id_idx").on(t.campaignId),
+]);
 
 export const exportEvents = pgTable("export_events", {
   id: text("id").primaryKey(),
@@ -96,7 +109,9 @@ export const exportEvents = pgTable("export_events", {
   userId: text("user_id"),
   format: text("format").notNull(),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("export_events_campaign_id_idx").on(t.campaignId),
+]);
 
 export const qcReviews = pgTable("qc_reviews", {
   id: text("id").primaryKey(),
@@ -112,7 +127,9 @@ export const qcReviews = pgTable("qc_reviews", {
   confidence: real("confidence"),
   linkedSourceIdsJson: jsonb("linked_source_ids_json"),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("qc_reviews_campaign_id_idx").on(t.campaignId),
+]);
 
 export const auditLogs = pgTable("audit_logs", {
   id: text("id").primaryKey(),
@@ -123,7 +140,10 @@ export const auditLogs = pgTable("audit_logs", {
   runId: text("run_id"),
   meta: jsonb("meta"),
   createdAt: timestamp("created_at").notNull(),
-});
+}, (t) => [
+  index("audit_logs_campaign_id_idx").on(t.campaignId),
+  index("audit_logs_created_at_idx").on(t.createdAt),
+]);
 
 export const agentJobs = pgTable("agent_jobs", {
   id: text("id").primaryKey(),
@@ -139,8 +159,12 @@ export const agentJobs = pgTable("agent_jobs", {
   progressJson: jsonb("progress_json"),
   errorJson: jsonb("error_json"),
   bossJobId: text("boss_job_id"),
-  attempts: real("attempts").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
   createdAt: timestamp("created_at").notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
-});
+}, (t) => [
+  index("agent_jobs_campaign_id_idx").on(t.campaignId),
+  index("agent_jobs_user_id_idx").on(t.userId),
+  index("agent_jobs_status_idx").on(t.status),
+]);
