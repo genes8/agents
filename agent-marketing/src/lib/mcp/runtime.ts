@@ -88,20 +88,21 @@ export async function runMcpResearchTools(input: RunMcpResearchToolsInput): Prom
       const researchTools = tools.filter((tool) => researchToolPattern.test(`${tool.name} ${tool.description ?? ""}`));
       logger.info("mcp.tools_discovered", { server: serverName, total: tools.length, research: researchTools.length });
 
-      for (const tool of researchTools.slice(0, 3)) {
+      const calls = researchTools.slice(0, 3).map(async (tool) => {
         logger.info("mcp.calling_tool", { server: serverName, tool: tool.name });
         const toolStart = Date.now();
-        const result = await client.callTool({
-          name: tool.name,
-          arguments: { query: input.briefText },
-        });
+        const result = await client.callTool({ name: tool.name, arguments: { query: input.briefText } });
         logger.info("mcp.tool_completed", { server: serverName, tool: tool.name, latencyMs: Date.now() - toolStart, isError: !!result.isError });
+        return { tool, result };
+      });
 
-        if (!result.isError) {
-          const metadata = extractMcpMetadata(result.content);
+      const settled = await Promise.allSettled(calls);
 
-          results.push({ serverName, toolName: tool.name, content: result.content, ...metadata });
-        }
+      for (const entry of settled) {
+        if (entry.status !== "fulfilled" || entry.value.result.isError) continue;
+        const { tool, result } = entry.value;
+        const metadata = extractMcpMetadata(result.content);
+        results.push({ serverName, toolName: tool.name, content: result.content, ...metadata });
       }
     }
   } finally {
