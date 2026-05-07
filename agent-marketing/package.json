@@ -20,6 +20,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@modelcontextprotocol/client": "latest",
     "@sentry/node": "^10.51.0",
     "@tanstack/react-router": "latest",

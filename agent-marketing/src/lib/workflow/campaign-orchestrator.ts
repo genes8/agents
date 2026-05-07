@@ -27,6 +27,7 @@ import type {
   QcReviewResult,
   UserId,
 } from "../campaign/types";
+import type { AgentJobProgress } from "../jobs/types";
 import { executeGenerateStrategyNode } from "./nodes/generate-strategy-node";
 import { executeGenerateModuleNode } from "./nodes/generate-module-node";
 
@@ -53,9 +54,12 @@ export async function listCampaignsHandler(userId: UserId = DEFAULT_USER_ID) {
   return listCampaigns(db, userId);
 }
 
+const defaultOnProgress = async (_p: AgentJobProgress) => {};
+
 export async function generateStrategyHandler(
   campaignId: CampaignId,
   userId: UserId = DEFAULT_USER_ID,
+  onProgress: (p: AgentJobProgress) => Promise<void> = defaultOnProgress,
 ): Promise<PersistedCampaignWorkspace> {
   const db = getDb();
   const workspace = await getCampaign(db, campaignId, userId);
@@ -72,7 +76,7 @@ export async function generateStrategyHandler(
   const model = process.env.OPENAI_DEFAULT_MODEL ?? "deepseek-v4-flash";
   try {
     const { usage } = await runWithUsageTracking(() =>
-      executeGenerateStrategyNode(db, { campaignId, brief: workspace.brief, runId: run.id }),
+      executeGenerateStrategyNode(db, { campaignId, brief: workspace.brief, runId: run.id }, onProgress),
     );
     const latencyMs = Date.now() - start;
     await completeRun(db, run.id, {
@@ -100,6 +104,7 @@ export async function generateModuleHandler(
   campaignId: CampaignId,
   module: CampaignModule,
   userId: UserId = DEFAULT_USER_ID,
+  onProgress: (p: AgentJobProgress) => Promise<void> = defaultOnProgress,
 ): Promise<PersistedCampaignWorkspace> {
   const db = getDb();
   const workspace = await getCampaign(db, campaignId, userId);
@@ -124,7 +129,7 @@ export async function generateModuleHandler(
         module,
         runId: run.id,
         previousWorkflowState: workspace.workflowState,
-      }),
+      }, onProgress),
     );
     const latencyMs = Date.now() - start;
     const finalState = result.workflowState;

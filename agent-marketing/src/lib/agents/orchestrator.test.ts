@@ -3,6 +3,11 @@ import { generateCampaignModule, generateCampaignStrategy, refineCampaignOutput 
 import type { CampaignAgents } from "./types";
 import type { CampaignBrief, CampaignStrategy } from "../campaign/types";
 
+vi.mock("../mcp/runtime", () => ({
+  runMcpResearchTools: vi.fn().mockResolvedValue([]),
+  formatMcpToolResults: vi.fn().mockReturnValue("MCP Research Context: No MCP research tools returned context."),
+}));
+
 const brief: CampaignBrief = {
   startupName: "SignalForge",
   productDescription: "AI research assistant for sales teams.",
@@ -33,7 +38,7 @@ describe("campaign orchestrator", () => {
       refine: vi.fn(),
     };
 
-    const { strategy: result, mcpResults } = await generateCampaignStrategy(brief, agents);
+    const { strategy: result, mcpResults } = await generateCampaignStrategy(brief, async () => {}, agents);
     expect(result).toBe(strategy);
     expect(mcpResults).toEqual([]);
     expect(agents.research).toHaveBeenCalledOnce();

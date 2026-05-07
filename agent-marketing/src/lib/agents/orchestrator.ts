@@ -5,6 +5,8 @@ import { runMarketResearcher } from "./market-researcher";
 import { runPositioningStrategist } from "./positioning-strategist";
 import { runCopyRefiner, runSocialCopywriter } from "./social-copywriter";
 import type { CampaignAgents } from "./types";
+import type { AgentJobProgress } from "../jobs/types";
+import { logger } from "../logging/logger";
 
 const defaultAgents: CampaignAgents = {
   research: runMarketResearcher,
@@ -20,12 +22,26 @@ export type StrategyResult = {
 
 export async function generateCampaignStrategy(
   brief: CampaignBrief,
+  onProgress: (p: AgentJobProgress) => Promise<void> = async () => {},
   agents = defaultAgents,
 ): Promise<StrategyResult> {
-  const mcpResults = await runMcpResearchTools({ briefText: buildBriefText(brief) });
+  const briefText = buildBriefText(brief);
+  logger.info("orchestrator.mcp_start", { startup: brief.startupName });
+
+  await onProgress({ step: "mcp_connect", message: "Connecting to research tools..." });
+  const mcpResults = await runMcpResearchTools({ briefText });
   const mcpContext = formatMcpToolResults(mcpResults);
+
+  await onProgress({ step: "market_research", message: "Analyzing market and competitors..." });
+  logger.info("orchestrator.research_start");
   const research = await agents.research({ brief, mcpContext });
+  logger.info("orchestrator.research_done");
+
+  await onProgress({ step: "strategy_generation", message: "Crafting your positioning strategy..." });
+  logger.info("orchestrator.strategy_start");
   const strategy = await agents.strategy({ brief, mcpContext, research });
+  logger.info("orchestrator.strategy_done");
+
   return { strategy, mcpResults };
 }
 

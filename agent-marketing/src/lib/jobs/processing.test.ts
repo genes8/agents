@@ -45,10 +45,10 @@ describe("job processing", () => {
 
     await processAgentJob(db, job.id, runner);
 
-    expect(runner.generateStrategy).toHaveBeenCalledWith(campaignId, "user-1");
+    expect(runner.generateStrategy).toHaveBeenCalledWith(campaignId, "user-1", expect.any(Function));
     const updated = await getAgentJob(db, job.id);
     expect(updated?.status).toBe("succeeded");
-    expect(updated?.progress).toEqual({ step: "completed" });
+    expect(updated?.progress).toEqual({ step: "completed", message: "Done!" });
   });
 
   it("processes a generate module job and passes module payload", async () => {
@@ -66,7 +66,7 @@ describe("job processing", () => {
 
     await processAgentJob(db, job.id, runner);
 
-    expect(runner.generateModule).toHaveBeenCalledWith(campaignId, "linkedin", "user-1");
+    expect(runner.generateModule).toHaveBeenCalledWith(campaignId, "linkedin", "user-1", expect.any(Function));
     expect((await getAgentJob(db, job.id))?.status).toBe("succeeded");
   });
 
@@ -111,6 +111,6 @@ describe("job processing", () => {
     expect(runner.generateStrategy).toHaveBeenCalledTimes(2);
     const updated = await getAgentJob(db, job.id);
     expect(updated?.status).toBe("succeeded");
-    expect(updated?.progress).toEqual({ step: "completed" });
+    expect(updated?.progress).toEqual({ step: "completed", message: "Done!" });
   });
 });

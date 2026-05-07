@@ -112,6 +112,27 @@ h1 {
   border: 1px solid rgba(95, 175, 130, 0.18);
 }
 
+.status-banner--progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(95, 175, 130, 0.3);
+  border-top-color: var(--ok-text);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .error-banner {
   background: var(--err-bg);
   color: var(--err-text);

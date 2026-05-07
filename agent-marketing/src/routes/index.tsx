@@ -93,11 +93,12 @@ function HomePage() {
         if (job.status === "queued") {
           setStatus(currentJob.type === "generate_strategy" ? "Strategy job queued..." : "Module job queued...");
         } else if (job.status === "running") {
-          setStatus(
+          const progressMsg = (job.progress as { message?: string })?.message;
+          setStatus(progressMsg ?? (
             currentJob.type === "generate_strategy"
               ? "Building Strategy Core..."
-              : `Generating ${currentJob.module} module...`,
-          );
+              : `Generating ${currentJob.module} module...`
+          ));
         } else if (job.status === "failed") {
           setError(job.error?.message ?? "Job failed.");
           setStatus("");
@@ -244,7 +245,12 @@ function HomePage() {
       </header>
 
       {modelInfo && <div className="status-banner">{modelInfo}</div>}
-      {status && <div className="status-banner">{status}</div>}
+      {status && (
+        <div className={`status-banner${busy ? " status-banner--progress" : ""}`}>
+          {busy && <span className="progress-spinner" />}
+          {status}
+        </div>
+      )}
       {error && <div className="error-banner">{error}</div>}
       {workflowState && (
         <div className={`state-pill state-pill--${workflowState}`}>

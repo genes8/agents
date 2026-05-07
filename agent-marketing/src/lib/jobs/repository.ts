@@ -99,6 +99,13 @@ export async function cancelAgentJob(db: Db, jobId: AgentJobId): Promise<AgentJo
   return { ...job, status: "cancelled" };
 }
 
+export async function updateJobProgress(db: Db, jobId: AgentJobId, progress: AgentJobProgress): Promise<void> {
+  await db
+    .update(agentJobs)
+    .set({ progressJson: progress })
+    .where(eq(agentJobs.id, jobId));
+}
+
 export async function listAllAgentJobsByUser(db: Db, userId: UserId, limit = 100): Promise<AgentJob[]> {
   const rows = await db
     .select()

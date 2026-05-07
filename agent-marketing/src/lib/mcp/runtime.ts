@@ -1,4 +1,5 @@
-import { getMcpStdioServers, type McpStdioServerConfig } from "./config";
+import { getMcpServers, isHttpConfig, type McpServerConfig } from "./config";
+import { logger } from "../logging/logger";
 
 type McpContent = { type: string; text?: string } & Record<string, unknown>;
 
@@ -31,13 +32,19 @@ type RunMcpResearchToolsInput = {
 
 const researchToolPattern = /search|web|crawl|scrape|fetch|browser|url/i;
 
-export async function connectConfiguredMcpClients(configs = getMcpStdioServers()): Promise<ConnectedMcpClient[]> {
+export async function connectConfiguredMcpClients(configs = getMcpServers()): Promise<ConnectedMcpClient[]> {
   const connectedClients: ConnectedMcpClient[] = [];
 
   for (const config of configs) {
+    const transport = isHttpConfig(config) ? "http" : "stdio";
     try {
-      connectedClients.push(await connectStdioMcpClient(config));
+      logger.info("mcp.connecting", { server: config.name, transport });
+      connectedClients.push(
+        isHttpConfig(config) ? await connectHttpMcpClient(config) : await connectStdioMcpClient(config),
+      );
+      logger.info("mcp.connected", { server: config.name });
     } catch (error) {
+      logger.error("mcp.connection_failed", { server: config.name, transport, error: error instanceof Error ? error.message : String(error) });
       await Promise.allSettled(connectedClients.map(({ client }) => client.close()));
       throw error;
     }
@@ -46,15 +53,25 @@ export async function connectConfiguredMcpClients(configs = getMcpStdioServers()
   return connectedClients;
 }
 
-async function connectStdioMcpClient(config: McpStdioServerConfig): Promise<ConnectedMcpClient> {
+async function connectStdioMcpClient(config: McpServerConfig): Promise<ConnectedMcpClient> {
   const { Client, StdioClientTransport } = await import("@modelcontextprotocol/client");
   const client = new Client({ name: `agent-marketing-${config.name}`, version: "1.0.0" });
   const transport = new StdioClientTransport({
-    command: config.command,
-    args: config.args ?? [],
-    env: config.env,
-    cwd: config.cwd,
+    command: (config as { command: string; args?: string[]; env?: Record<string, string>; cwd?: string }).command,
+    args: (config as { args?: string[] }).args ?? [],
+    env: (config as { env?: Record<string, string> }).env,
+    cwd: (config as { cwd?: string }).cwd,
   });
+
+  await client.connect(transport);
+
+  return { serverName: config.name, client };
+}
+
+async function connectHttpMcpClient(config: { name: string; url: string }): Promise<ConnectedMcpClient> {
+  const { Client, StreamableHTTPClientTransport } = await import("@modelcontextprotocol/client");
+  const client = new Client({ name: `agent-marketing-${config.name}`, version: "1.0.0" });
+  const transport = new StreamableHTTPClientTransport(new URL(config.url));
 
   await client.connect(transport);
 
@@ -69,12 +86,16 @@ export async function runMcpResearchTools(input: RunMcpResearchToolsInput): Prom
     for (const { serverName, client } of clients) {
       const tools = await listAllTools(client);
       const researchTools = tools.filter((tool) => researchToolPattern.test(`${tool.name} ${tool.description ?? ""}`));
+      logger.info("mcp.tools_discovered", { server: serverName, total: tools.length, research: researchTools.length });
 
       for (const tool of researchTools.slice(0, 3)) {
+        logger.info("mcp.calling_tool", { server: serverName, tool: tool.name });
+        const toolStart = Date.now();
         const result = await client.callTool({
           name: tool.name,
           arguments: { query: input.briefText },
         });
+        logger.info("mcp.tool_completed", { server: serverName, tool: tool.name, latencyMs: Date.now() - toolStart, isError: !!result.isError });
 
         if (!result.isError) {
           const metadata = extractMcpMetadata(result.content);
@@ -87,6 +108,7 @@ export async function runMcpResearchTools(input: RunMcpResearchToolsInput): Prom
     await Promise.all(clients.map(({ client }) => client.close()));
   }
 
+  logger.info("mcp.research_complete", { resultCount: results.length });
   return results;
 }
 
